@@ -1,11 +1,15 @@
+from typing import Generic, TypeVar, Optional, Callable, Any
+
 from sqlalchemy import Column, String, create_engine, Integer
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from werkzeug.exceptions import BadRequest
 
 from aisysprojserver.config import Config
 
-Base = declarative_base()
+# should be type[DeclarativeMeta], but mypy complains...
+Base: Any = declarative_base()  # typing: ignore
 
 
 class AgentAccountModel(Base):
@@ -16,6 +20,58 @@ class AgentAccountModel(Base):
     environment = Column(String, index=True)
     password = Column(String)
     status = Column(Integer)
+
+
+class ActiveEnvironmentModel(Base):
+    __tablename__ = 'active_environments'
+
+    identifier = Column(String, primary_key=True, index=True)
+
+    env_class = Column(String)
+    displayname = Column(String)
+    settings = Column(String)
+
+    # to avoid changing the database layout later, let's add columns we might need in the future
+    signup = Column(String)     # for future use (e.g. signup can be open to everyone), currently only "restricted" supported
+    status = Column(String)     # for future use, currently only "active" supported
+
+
+_M = TypeVar('_M', bound=Base)
+
+
+class ModelMixin(Generic[_M]):
+    """ Mixin for classes that are linked to a model """
+    _model: Optional[_M] = None
+    identifier: str
+
+    def __init__(self, model_class: type[_M]):
+        self.__model_class = model_class
+
+    def _try_load_model(self):
+        if self._model is None:
+            with Session() as session:
+                self._model = session.get(self.__model_class, self.identifier)
+
+    def _require_model(self) -> _M:
+        self._try_load_model()
+        if self._model is None:
+            raise Exception(f'{self.__model_class.__name__} {self.identifier!r} does not exist')
+        return self._model
+
+    def exists(self) -> bool:
+        self._try_load_model()
+        return self._model is not None
+
+    def _change_model(self, modify: Callable[[_M], None]):
+        with Session() as session:
+            ac: Optional[_M] = session.get(self.__model_class, self.identifier)
+            if not ac:
+                raise BadRequest(f'{self.__model_class.__name__} {self.identifier!r} does not exist')
+            modify(ac)
+            session.merge(ac)
+            session.commit()
+        self._model = None
+
 
 
 engine: Engine = None           # type: ignore

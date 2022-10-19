@@ -13,6 +13,8 @@ bp = Blueprint('agent_account_management', __name__)
 def makeagent(env: str, agent: str):
     g.isJSON = True
     content = request.get_json()
+    if not content:
+        raise BadRequest('Expected JSON body')
     require_admin_auth()
 
     # TODO: Verify that environment exists

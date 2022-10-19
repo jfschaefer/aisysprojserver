@@ -36,9 +36,18 @@ class ServerTestCase(unittest.TestCase):
     admin: TestAdmin = helper.admin
     app: Flask = helper.app
     client: FlaskClient = helper.flask_client
+    _standard_setup_loaded: bool = False
 
-    def load_standard_env(self):
+    @classmethod
+    def _load_standard_setup(cls):
+        """ Load a basic setup (environment and agents) to support testing """
         package = Path(__file__).parent.parent/'example_envs'/'simple_nim'
-        self.assertTrue(package.is_dir(), f'{package} does not exist')
-        code, _ = upload_plugin(self.admin, package)
-        self.assertEqual(code, 200)
+        assert package.is_dir(), f'{package} does not exist'
+        code, content = upload_plugin(cls.admin, package)
+        assert code == 200, 'Failed to upload plugin. Content: ' + str(content)
+        cls._standard_setup_loaded = True
+
+    @classmethod
+    def require_standard_setup(cls):
+        if not cls._standard_setup_loaded:
+            cls._load_standard_setup()

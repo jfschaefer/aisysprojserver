@@ -7,7 +7,7 @@ from typing import Optional, Callable
 from flask import request
 from werkzeug.exceptions import Unauthorized, BadRequest
 
-from aisysprojserver.models import AgentAccountModel, Session
+from aisysprojserver.models import AgentAccountModel, Session, ModelMixin
 from aisysprojserver.authentication import require_password_match, default_pwd_hash
 
 
@@ -20,18 +20,21 @@ class AgentStatus(IntEnum):
     ACTIVE = 1
 
 
-class AgentAccount:
+class AgentAccount(ModelMixin[AgentAccountModel]):
     _authenticated: bool = False
-    _agent_account: Optional[AgentAccountModel] = None
 
     def __init__(self, environment: str, agentname: str, is_client: bool = False):
+        ModelMixin.__init__(self, AgentAccountModel)
         self.environment = environment
         self.agentname = agentname
         self.is_client = is_client    # indicates that the client is making the request (helps with error messages)
+        self.identifier = f'{self.environment}/{self.agentname}'
 
     @classmethod
     def from_request(cls, environment: str, agent: Optional[str] = None) -> AgentAccount:
         content = request.get_json()
+        if not content:
+            raise BadRequest('Expected JSON body')
         if agent is None:
             if 'agent' not in content:
                 raise BadRequest(f'No agent was specified')
@@ -57,39 +60,17 @@ class AgentAccount:
     def is_authenticated(self) -> bool:
         return self._authenticated
 
-    @property
-    def identifier(self) -> str:
-        return f'{self.environment}/{self.agentname}'
-
-    def _try_load_agent_account(self) -> bool:
-        if self._agent_account is None:
-            with Session() as session:
-                self._agent_account = session.get(AgentAccountModel, self.identifier)
-        return self._agent_account is not None
-
-    def _require_agent_account(self):
-        if not self._try_load_agent_account():
-            if self.is_client:
-                raise Unauthorized(f'There is no agent {self.agentname} in {self.environment}')
-            else:
-                raise NoSuchAgentError(f'There is no agent {self.identifier} in the database')
-
-    def exists(self) -> bool:
-        return self._try_load_agent_account()
-
     def require_authenticated(self, password: Optional[str]):
         if self._authenticated:
             return
-        self._require_agent_account()
 
         if password is not None:
-            require_password_match(password, self._agent_account.password)
+            require_password_match(password, self._require_model().password)
         else:
             raise Unauthorized(f'Agent requires authentication but no password was provided (this may be a server issue)')
 
     def is_active(self) -> bool:
-        self._require_agent_account()
-        return self._agent_account.status == AgentStatus.ACTIVE
+        return self._require_model().status == AgentStatus.ACTIVE
 
     def require_active(self):
         if not self.is_active():
@@ -118,16 +99,6 @@ class AgentAccount:
             session.commit()
 
         return password
-
-    def _change_model(self, modify: Callable[[AgentAccountModel], None]):
-        with Session() as session:
-            ac: Optional[AgentAccountModel] = session.get(AgentAccountModel, self.identifier)
-            if not ac:
-                raise BadRequest(f'Agent {self.identifier} does not exist')
-            modify(ac)
-            session.merge(ac)
-            session.commit()
-        self._agent_account = None
 
     def block(self):
         def block(ac: AgentAccountModel):

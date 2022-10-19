@@ -1,12 +1,13 @@
 import json
 import logging
+import traceback
 from pathlib import Path
 from typing import Optional
 
 from flask import Flask, g, jsonify
-from werkzeug.exceptions import HTTPException, InternalServerError
+from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
-from aisysprojserver import models, agent_account_management, plugins
+from aisysprojserver import models, agent_account_management, plugins, authentication
 from aisysprojserver.config import Config
 from aisysprojserver.plugins import PluginManager
 
@@ -24,13 +25,25 @@ def http_exception_handler(exception):
         return response
     logger = logging.getLogger(__name__)
     logger.error('Unhandled exception', exc_info=exception)
+
+    is_admin = False
+    try:
+        authentication.require_admin_auth()
+        is_admin = True
+    except Unauthorized:
+        pass
+    if is_admin:
+        description = '\n\n'.join(traceback.format_tb(exception.__traceback__))
+    else:
+        # exception can leak sensitive data – don't forward them to non-admins
+        description = type(exception).__name__
     if hasattr(g, 'isJSON') and g.isJSON:
         response = jsonify({'errorcode': 500, 'errorname': 'Internal Server Error',
-                            'description': type(exception).__name__})
+                            'description': description})
         response.status_code = 500
         return response
     else:
-        return InternalServerError(type(exception).__name__).get_response()
+        return InternalServerError(description).get_response()
 
 
 def create_app(configuration: Optional[Config]) -> Flask:
@@ -47,7 +60,8 @@ def create_app(configuration: Optional[Config]) -> Flask:
         if not (plugins_path := Path(configuration.PLUGINS_DIR)).is_dir():
             plugins_path.mkdir()
         logging.info(f'Loading plugins from {plugins_path}')
-        PluginManager.init(plugins_path)
+        PluginManager.set_plugins_dir(plugins_path)
+        PluginManager.reload_all_plugins()
 
     models.setup(configuration)
 

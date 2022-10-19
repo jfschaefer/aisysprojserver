@@ -60,9 +60,9 @@ class EnvInfo:
 
 
 class GenericEnvironment(abc.ABC):
-    def __init__(self, env_info: EnvInfo, config_str: str):
+    def __init__(self, env_info: EnvInfo, settings_str: str):
         self.env_inf = env_info
-        self.config_str = config_str
+        self.settings_str = settings_str
 
     def act(self, action: Any, run_data: RunData) -> ActionResult:  # invalid actions should be indicated in the return value (not via exceptions)
         raise NotImplementedError()
