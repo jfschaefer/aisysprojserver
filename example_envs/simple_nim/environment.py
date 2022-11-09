@@ -9,16 +9,16 @@ from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionRes
 
 @dataclass_json
 @dataclasses.dataclass(frozen=True)
-class Settings:
+class Config:
     strong: bool = True
     random_start: bool = False
 
 
 class Environment(GenericEnvironment):
-    def __init__(self, env_info: EnvInfo, settings_str: str):
-        GenericEnvironment.__init__(self, env_info, settings_str)
+    def __init__(self, env_info: EnvInfo, config_str: str):
+        GenericEnvironment.__init__(self, env_info, config_str)
 
-        self.settings: Settings = Settings.schema().loads(settings_str)
+        self.config: Config = Config.schema().loads(config_str)
 
     def act(self, action: Any, run_data: RunData) -> ActionResult:
         state = int(run_data.state)
@@ -40,7 +40,7 @@ class Environment(GenericEnvironment):
             return ActionResult(new_state='0', message='Congratulations, you won!', outcome=1.0)
 
         # environment/opponent makes an action
-        if self.settings.strong:
+        if self.config.strong:
             counter_action = updated_state % 4
             if not counter_action:       # cannot win -> random move
                 counter_action = random.randint(1, 3)
@@ -54,7 +54,7 @@ class Environment(GenericEnvironment):
                             outcome=None if remaining else 0.0)
 
     def new_run(self) -> str:
-        if self.settings.random_start:
+        if self.config.random_start:
             return str(random.randint(9, 11))    # agent can always win
         else:
             return '10'

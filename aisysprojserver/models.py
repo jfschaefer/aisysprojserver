@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar, Optional, Callable, Any
 
-from sqlalchemy import Column, String, create_engine, Integer
+from sqlalchemy import Column, String, create_engine, Integer, Float, Boolean, Text
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -22,6 +22,31 @@ class AgentAccountModel(Base):
     status = Column(Integer)
 
 
+class AgentDataModel(Base):
+    __tablename__ = 'agents'
+
+    identifier = Column(String, primary_key=True, index=True)   # environment/agentname
+
+    environment = Column(String, index=True)
+
+    recently_finished_runs = Column(Text)
+    recent_results = Column(Text)   # necessary for computing the rating
+    rating = Column(Float)
+
+
+class RunModel(Base):
+    __tablename__ = 'runs'
+
+    identifier = Column(Integer, primary_key=True, index=True)
+    environment = Column(String, index=True)
+    agent = Column(String, index=True)
+    finished = Column(Boolean, index=True)
+
+    state = Column(Text)
+    history = Column(Text)
+    outcome = Column(String)
+
+
 class ActiveEnvironmentModel(Base):
     __tablename__ = 'active_environments'
 
@@ -29,7 +54,7 @@ class ActiveEnvironmentModel(Base):
 
     env_class = Column(String)
     displayname = Column(String)
-    settings = Column(String)
+    config = Column(String)
 
     # to avoid changing the database layout later, let's add columns we might need in the future
     signup = Column(String)     # for future use (e.g. signup can be open to everyone), currently only "restricted" supported
@@ -71,7 +96,6 @@ class ModelMixin(Generic[_M]):
             session.merge(ac)
             session.commit()
         self._model = None
-
 
 
 engine: Engine = None           # type: ignore

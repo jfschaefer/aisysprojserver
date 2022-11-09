@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import secrets
 from enum import IntEnum
-from typing import Optional, Callable
+from typing import Optional
 
 from flask import request
 from werkzeug.exceptions import Unauthorized, BadRequest
 
-from aisysprojserver.models import AgentAccountModel, Session, ModelMixin
 from aisysprojserver.authentication import require_password_match, default_pwd_hash
+import aisysprojserver.models as models
 
 
 class NoSuchAgentError(Exception):
@@ -20,11 +20,11 @@ class AgentStatus(IntEnum):
     ACTIVE = 1
 
 
-class AgentAccount(ModelMixin[AgentAccountModel]):
+class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
     _authenticated: bool = False
 
     def __init__(self, environment: str, agentname: str, is_client: bool = False):
-        ModelMixin.__init__(self, AgentAccountModel)
+        models.ModelMixin.__init__(self, models.AgentAccountModel)
         self.environment = environment
         self.agentname = agentname
         self.is_client = is_client    # indicates that the client is making the request (helps with error messages)
@@ -51,22 +51,19 @@ class AgentAccount(ModelMixin[AgentAccountModel]):
             pwd = content['pwd']
             if not isinstance(pwd, str):
                 raise BadRequest(f'Bad value for field "pwd"')
+
             # if an authentication is provided, we require it to be correct
             # this means that later on we don't have to worry about retrieving the password from the request
-            account.require_authenticated(pwd)
+            require_password_match(pwd, account._require_model().password)
+            account._authenticated = True
 
         return account
 
     def is_authenticated(self) -> bool:
         return self._authenticated
 
-    def require_authenticated(self, password: Optional[str]):
-        if self._authenticated:
-            return
-
-        if password is not None:
-            require_password_match(password, self._require_model().password)
-        else:
+    def require_authenticated(self):
+        if not self._authenticated:
             raise Unauthorized(f'Agent requires authentication but no password was provided (this may be a server issue)')
 
     def is_active(self) -> bool:
@@ -85,15 +82,15 @@ class AgentAccount(ModelMixin[AgentAccountModel]):
         # password should always be server-generated to ensure it has enough entropy for efficient (unsafe) hashing
         password = secrets.token_urlsafe(32)
 
-        with Session() as session:
-            ac = session.get(AgentAccountModel, self.identifier)
+        with models.Session() as session:
+            ac = session.get(models.AgentAccountModel, self.identifier)
             if ac is not None:
                 if not overwrite:
                     raise BadRequest(f'Agent {self.identifier} already exists')
                 session.delete(ac)
             session.commit()
 
-            ac = AgentAccountModel(identifier=self.identifier, environment=self.environment,
+            ac = models.AgentAccountModel(identifier=self.identifier, environment=self.environment,
                                    password=default_pwd_hash(password), status=AgentStatus.ACTIVE)
             session.add(ac)
             session.commit()
@@ -101,11 +98,11 @@ class AgentAccount(ModelMixin[AgentAccountModel]):
         return password
 
     def block(self):
-        def block(ac: AgentAccountModel):
+        def block(ac: models.AgentAccountModel):
             ac.status = AgentStatus.LOCKED
         self._change_model(block)
 
     def unblock(self):
-        def unblock(ac: AgentAccountModel):
+        def unblock(ac: models.AgentAccountModel):
             ac.status = AgentStatus.ACTIVE
         self._change_model(unblock)

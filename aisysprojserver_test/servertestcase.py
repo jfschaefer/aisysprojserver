@@ -5,7 +5,7 @@ from typing import Any
 from flask import Flask
 from flask.testing import FlaskClient
 
-from aisysprojserver import config
+from aisysprojserver import config, models
 from aisysprojserver.app import create_app
 from aisysprojserver_clienttools.admin import AdminClient
 from aisysprojserver_clienttools.upload_plugin import upload_plugin
@@ -38,14 +38,31 @@ class ServerTestCase(unittest.TestCase):
     client: FlaskClient = helper.flask_client
     _standard_setup_loaded: bool = False
 
+    _username_counter: int = 0
+
+    @classmethod
+    def get_username(cls) -> str:
+        """ Returns a unique username """
+        username = f'user{cls._username_counter}'
+        cls._username_counter += 1
+        return username
+
     @classmethod
     def _load_standard_setup(cls):
         """ Load a basic setup (environment and agents) to support testing """
+        models.Base.metadata.drop_all(bind=models.engine)
+        models.Base.metadata.create_all(bind=models.engine)
+
         package = Path(__file__).parent.parent/'example_envs'/'simple_nim'
         assert package.is_dir(), f'{package} does not exist'
         code, content = upload_plugin(cls.admin, package)
         assert code == 200, 'Failed to upload plugin. Content: ' + str(content)
+
+        cls.admin.make_env('simple_nim.environment:Environment', 'test-nim',
+                           'Test Environment (Nim)', settings='{}', overwrite=False)
+        cls.admin.new_user('test-nim', 'testuser')
         cls._standard_setup_loaded = True
+
 
     @classmethod
     def require_standard_setup(cls):

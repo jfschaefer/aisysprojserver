@@ -3,6 +3,7 @@ import re
 from flask import Blueprint, request, jsonify, g
 from werkzeug.exceptions import BadRequest
 
+from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.authentication import require_admin_auth
 
@@ -17,7 +18,9 @@ def makeagent(env: str, agent: str):
         raise BadRequest('Expected JSON body')
     require_admin_auth()
 
-    # TODO: Verify that environment exists
+    active_env = ActiveEnvironment(env)
+    if not active_env.exists():
+        raise BadRequest(f'No such environment {env}')
 
     if not re.match(r'[a-zA-Z0-9 \[\]_()-]+', agent):
         return BadRequest(f'Illegal agent name "{agent}"')

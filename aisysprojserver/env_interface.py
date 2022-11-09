@@ -4,12 +4,14 @@ from typing import Optional, Any
 
 from werkzeug.exceptions import NotFound
 
+from aisysprojserver.env_settings import EnvSettings
+
 
 @dataclasses.dataclass(frozen=True)
 class ActionResult:
     new_state: Optional[str] = None          # None means that the action was not accepted (e.g. invalid move)
     message: Optional[str] = None            # A message for the agent (considered an error message if new_state is None)
-    action_extra_info: Optional[str] = None  # some sort of extra information related to the action (for action history)
+    action_extra_info: str = ''              # some sort of extra information related to the action (for action history)
     outcome: Optional[float] = None          # run is over if not None
 
 
@@ -20,8 +22,8 @@ class ActionRequest:
 
 @dataclasses.dataclass(frozen=True)
 class ActionHistoryEntry:
-    action: str
-    extra_info: Optional[str]
+    action: Any
+    extra_info: str
 
 
 @dataclasses.dataclass(frozen=True)
@@ -39,7 +41,7 @@ class AbbreviatedRunData:
 
 
 @dataclasses.dataclass(frozen=True)
-class AgentData:
+class AgentDataSummary:
     agent_name: str
     agent_rating: float
     recent_runs: list[AbbreviatedRunData]
@@ -47,8 +49,7 @@ class AgentData:
 
 @dataclasses.dataclass(frozen=True)
 class EnvData:
-    recent_runs: list[AbbreviatedRunData]
-    agents: list[AgentData]
+    agents: list[AgentDataSummary]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -60,9 +61,11 @@ class EnvInfo:
 
 
 class GenericEnvironment(abc.ABC):
-    def __init__(self, env_info: EnvInfo, settings_str: str):
+    settings: EnvSettings = EnvSettings()
+
+    def __init__(self, env_info: EnvInfo, config_str: str):
         self.env_inf = env_info
-        self.settings_str = settings_str
+        self.config_str = config_str
 
     def act(self, action: Any, run_data: RunData) -> ActionResult:  # invalid actions should be indicated in the return value (not via exceptions)
         raise NotImplementedError()
@@ -76,7 +79,7 @@ class GenericEnvironment(abc.ABC):
     def view_run(self, run_data: RunData) -> str:
         raise NotFound(f'Viewing runs is not supported for this environment')
 
-    def view_agent(self, agent_data: AgentData) -> str:       # idea: mixins for standard implementation
+    def view_agent(self, agent_data: AgentDataSummary) -> str:       # idea: mixins for standard implementation
         raise NotFound(f'Viewing agents is not supported for this environment')
 
     def view_env(self, env_data: EnvData) -> str:
