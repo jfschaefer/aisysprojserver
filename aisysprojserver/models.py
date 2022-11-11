@@ -26,12 +26,14 @@ class AgentDataModel(Base):
     __tablename__ = 'agents'
 
     identifier = Column(String, primary_key=True, index=True)   # environment/agentname
-
     environment = Column(String, index=True)
+    fully_evaluated = Column(Boolean, index=True)       # agent has performed enough runs to be properly evaluated
 
+    total_runs = Column(Integer)
     recently_finished_runs = Column(Text)
     recent_results = Column(Text)   # necessary for computing the rating
-    rating = Column(Float)
+    best_rating = Column(Float)
+    current_rating = Column(Float)
 
 
 class RunModel(Base):
@@ -41,6 +43,10 @@ class RunModel(Base):
     environment = Column(String, index=True)
     agent = Column(String, index=True)
     finished = Column(Boolean, index=True)
+
+    # True if an action request has been sent and not replied to
+    # (used to make it harder for agents to delay bad runs to improve their rating)
+    outstanding_action = Column(Boolean)
 
     state = Column(Text)
     history = Column(Text)

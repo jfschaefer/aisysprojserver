@@ -50,7 +50,7 @@ class Environment(GenericEnvironment):
         remaining = updated_state-counter_action
         return ActionResult(new_state=str(remaining),
                             message=f'Opponent removed {counter_action}' + (' – you lost.' if not remaining else ''),
-                            action_extra_info=str(counter_action),
+                            action_extra_info=counter_action,
                             outcome=None if remaining else 0.0)
 
     def new_run(self) -> str:
@@ -60,4 +60,4 @@ class Environment(GenericEnvironment):
             return '10'
 
     def get_action_request(self, run_data: RunData) -> ActionRequest:
-        return ActionRequest(content=run_data.state)
+        return ActionRequest(content=int(run_data.state))

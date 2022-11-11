@@ -38,9 +38,9 @@ class AdminClient:
             'admin-pwd': self.pwd,
         })
 
-    def make_env(self, env_class: str, identifier: str, display_name: str, settings: str = False,
+    def make_env(self, env_class: str, identifier: str, display_name: str, config: str = False,
                  overwrite: bool = False) -> tuple[int, Any]:
-        data = MakeEnvRequest(env_class=env_class, display_name=display_name, settings=settings, overwrite=overwrite).to_dict()
+        data = MakeEnvRequest(env_class=env_class, display_name=display_name, config=config, overwrite=overwrite).to_dict()
         data['admin-pwd'] = self.pwd
         return self.send_request(f'makeenv/{identifier}', method='PUT', json=data)
 

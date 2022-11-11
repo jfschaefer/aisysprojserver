@@ -11,8 +11,8 @@ from aisysprojserver.env_settings import EnvSettings
 class ActionResult:
     new_state: Optional[str] = None          # None means that the action was not accepted (e.g. invalid move)
     message: Optional[str] = None            # A message for the agent (considered an error message if new_state is None)
-    action_extra_info: str = ''              # some sort of extra information related to the action (for action history)
-    outcome: Optional[float] = None          # run is over if not None
+    action_extra_info: Any = None            # some sort of extra information related to the action (for action history)
+    outcome: Optional[Any] = None            # run is over if not None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -23,20 +23,20 @@ class ActionRequest:
 @dataclasses.dataclass(frozen=True)
 class ActionHistoryEntry:
     action: Any
-    extra_info: str
+    extra_info: Any
 
 
 @dataclasses.dataclass(frozen=True)
 class RunData:
     action_history: list[ActionHistoryEntry]
     state: str
-    outcome: Optional[float]
+    outcome: Optional[Any]
 
 
 @dataclasses.dataclass(frozen=True)
 class AbbreviatedRunData:
     run_id: str
-    outcome: Optional[float]
+    outcome: Optional[Any]
     agent_name: str
 
 

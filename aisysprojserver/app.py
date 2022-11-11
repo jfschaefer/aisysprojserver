@@ -7,7 +7,7 @@ from typing import Optional
 from flask import Flask, g, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
-from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management
+from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act
 from aisysprojserver.config import Config
 from aisysprojserver.plugins import PluginManager
 
@@ -72,6 +72,7 @@ def create_app(configuration: Optional[Config]) -> Flask:
     app.register_blueprint(agent_account_management.bp)
     app.register_blueprint(active_env_management.bp)
     app.register_blueprint(plugins.bp)
+    app.register_blueprint(act.bp)
 
     return app
 

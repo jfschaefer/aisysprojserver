@@ -1,8 +1,9 @@
+import json
 import unittest
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from flask import Flask
+from flask import Flask, url_for
 from flask.testing import FlaskClient
 
 from aisysprojserver import config, models
@@ -37,6 +38,7 @@ class ServerTestCase(unittest.TestCase):
     app: Flask = helper.app
     client: FlaskClient = helper.flask_client
     _standard_setup_loaded: bool = False
+    _testuser_content: dict[str, str]
 
     _username_counter: int = 0
 
@@ -59,9 +61,18 @@ class ServerTestCase(unittest.TestCase):
         assert code == 200, 'Failed to upload plugin. Content: ' + str(content)
 
         cls.admin.make_env('simple_nim.environment:Environment', 'test-nim',
-                           'Test Environment (Nim)', settings='{}', overwrite=False)
-        cls.admin.new_user('test-nim', 'testuser')
+                           'Test Environment (Nim)', config='{}', overwrite=False)
+        code, cls._testuser_content = cls.admin.new_user('test-nim', 'testuser')
+        assert code == 200, 'Failed to create testuser'
+
         cls._standard_setup_loaded = True
+
+#     def act_nim(self, username: Optional[str] = None, password: Optional[str] = None, try_win: bool = True,
+#                 move: Optional[int] = None):
+#         username = username or 'testuser'
+#         password = password or self._testuser_pwd
+
+
 
 
     @classmethod
