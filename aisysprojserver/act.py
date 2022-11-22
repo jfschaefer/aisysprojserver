@@ -12,7 +12,7 @@ from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionHistoryEntry
 from aisysprojserver.json_util import json_load, json_dump
-from aisysprojserver.models import AgentDataModel, RunModel
+from aisysprojserver.models import AgentDataModel, RunModel, KeyValAccess
 
 bp = Blueprint('act', __name__)
 
@@ -61,9 +61,14 @@ class ActManager:
             # more robust if we want to parallelize
 
             # STEP 1: LOAD MODELS
+            # Note: we do not use the Run class as a wrapper because everything should happen in the same session
+            # (which is not supported by the wrapper)
             run_model: RunModel = session.get(RunModel, run_id)
             if not run_model:
                 self.errors.append(f'Invalid run id {action_json["run"]}')
+                return
+            if run_model.agent != self.account.identifier:
+                self.errors.append(f'Run id {run_id} does not reference one of your agent\'s runs')
                 return
 
             history = json_load(run_model.history)
@@ -75,8 +80,10 @@ class ActManager:
             # STEP 2: PERFORM ACTION
             action_result = self.env.act(action_json['action'], RunData(
                 action_history=[ActionHistoryEntry(action, extra) for action, extra in history],
-                state=run_model.state,
-                outcome=None
+                state=json_load(run_model.state),
+                outcome=None,
+                agent_name='/'.join(run_model.agent.split('/')[1:]),
+                run_id=run_model.identifier,
             ))
 
             # STEP 3: PROCESS ACTION RESULT
@@ -91,8 +98,9 @@ class ActManager:
             if action_result.message:
                 self.messages.append(f'{action_json["run"]}: {action_result.message}')
 
-            run_model.state = action_result.new_state
+            run_model.state = json_dump(action_result.new_state)
             history.append([action_json['action'], action_result.action_extra_info])
+            run_model.history = json_dump(history)
 
             if action_result.outcome is not None:
                 self.process_outcome(action_result.outcome, run_model, session)
@@ -106,6 +114,8 @@ class ActManager:
         run_model.outcome = json_dump(outcome)
         run_model.finished = True
         agent_data.total_runs += 1
+
+        # UPDATE RATINGS
         if agent_data.total_runs >= self.env.settings.MIN_RUNS_FOR_FULLY_EVALUATED:
             agent_data.fully_evaluated = True
 
@@ -119,13 +129,26 @@ class ActManager:
             case other:
                 raise Exception(f'Unsupported RATING_STRATEGY {other}')
 
-        if self.env.settings.RATING_OBJECTIVE == 'max':
-            agent_data.best_rating = max(agent_data.best_rating, agent_data.current_rating)
-        else:
-            assert self.env.settings.RATING_OBJECTIVE == 'min'
-            agent_data.best_rating = min(agent_data.best_rating, agent_data.current_rating)
+        if agent_data.fully_evaluated:
+            if self.env.settings.RATING_OBJECTIVE == 'max':
+                agent_data.best_rating = max(agent_data.best_rating, agent_data.current_rating)
+            else:
+                assert self.env.settings.RATING_OBJECTIVE == 'min'
+                agent_data.best_rating = min(agent_data.best_rating, agent_data.current_rating)
 
         agent_data.recent_results = json_dump(results)
+
+        # UPDATE HISTORY OF RECENT RUNS
+        runs = json_load(agent_data.recently_finished_runs)
+        runs.append(run_model.identifier)
+        agent_data.recently_finished_runs = json_dump(runs[-20:])
+
+        kva = KeyValAccess(session)
+        key = self.active_env.recent_runs_key
+        runs2 = json_load(kva[key] or '[]')
+        runs2.append(run_model.identifier)
+        kva[key] = json_dump(runs2[-20:])
+
         session.add(agent_data)
 
     def get_agent_data_model(self, session) -> AgentDataModel:
@@ -154,7 +177,8 @@ class ActManager:
                 run.outstanding_action = True
                 session.add(run)
                 history = json_load(run.history)
-                rd = RunData([ActionHistoryEntry(a, e) for a, e in history], run.state, None)
+                rd = RunData([ActionHistoryEntry(a, e) for a, e in history], json_load(run.state), None,
+                             run_id=run.identifier, agent_name='/'.join(run.agent.split('/')[1:]))
                 ar = self.env.get_action_request(rd)
                 return {'run': f'{run.identifier}#{len(history)}',
                         'percept': ar.content}
@@ -165,7 +189,8 @@ class ActManager:
 
             runs_with_outstanding_action = [run for run in runs if run.outstanding_action]
             if runs_with_outstanding_action:
-                response['action-requests'] = [serialize_run(run) for run in runs_with_outstanding_action[:max_requests]]
+                response['action-requests'] = [serialize_run(run) for run in
+                                               runs_with_outstanding_action[:max_requests]]
                 session.commit()
                 return response
 
@@ -176,7 +201,7 @@ class ActManager:
                     agent=self.account.identifier,
                     finished=False,
                     outstanding_action=False,
-                    state=state,
+                    state=json_dump(state),
                     history='[]',
                     outcome=json_dump(None)
                 )

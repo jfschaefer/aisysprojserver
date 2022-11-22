@@ -15,7 +15,7 @@ Base: Any = declarative_base()  # typing: ignore
 class AgentAccountModel(Base):
     __tablename__ = 'accounts'
 
-    identifier = Column(String, primary_key=True, index=True)   # environment/agentname
+    identifier = Column(String, primary_key=True, index=True)  # environment/agentname
 
     environment = Column(String, index=True)
     password = Column(String)
@@ -25,13 +25,13 @@ class AgentAccountModel(Base):
 class AgentDataModel(Base):
     __tablename__ = 'agents'
 
-    identifier = Column(String, primary_key=True, index=True)   # environment/agentname
+    identifier = Column(String, primary_key=True, index=True)  # environment/agentname
     environment = Column(String, index=True)
-    fully_evaluated = Column(Boolean, index=True)       # agent has performed enough runs to be properly evaluated
+    fully_evaluated = Column(Boolean, index=True)  # agent has performed enough runs to be properly evaluated
 
     total_runs = Column(Integer)
     recently_finished_runs = Column(Text)
-    recent_results = Column(Text)   # necessary for computing the rating
+    recent_results = Column(Text)  # necessary for computing the rating
     best_rating = Column(Float)
     current_rating = Column(Float)
 
@@ -41,7 +41,7 @@ class RunModel(Base):
 
     identifier = Column(Integer, primary_key=True, index=True)
     environment = Column(String, index=True)
-    agent = Column(String, index=True)
+    agent = Column(String, index=True)      # environment/agentname
     finished = Column(Boolean, index=True)
 
     # True if an action request has been sent and not replied to
@@ -60,11 +60,37 @@ class ActiveEnvironmentModel(Base):
 
     env_class = Column(String)
     displayname = Column(String)
+    displaygroup = Column(String)  # Will be grouped on the front page under this header
     config = Column(String)
 
     # to avoid changing the database layout later, let's add columns we might need in the future
-    signup = Column(String)     # for future use (e.g. signup can be open to everyone), currently only "restricted" supported
-    status = Column(String)     # for future use, currently only "active" supported
+    signup = Column(
+        String)  # for future use (e.g. signup can be open to everyone), currently only "restricted" supported
+    status = Column(String)  # for future use, currently only "active" supported
+
+
+class KeyValModel(Base):
+    __tablename__ = 'keyval'
+
+    key = Column(String, index=True, primary_key=True)
+    val = Column(Text)
+
+
+class KeyValAccess:
+    def __init__(self, session):
+        self.session = session
+
+    def __getitem__(self, item: str):
+        kv = self.session.get(KeyValModel, item)
+        return kv.val if kv is not None else None
+
+    def __setitem__(self, key, value):
+        entry = self.session.get(KeyValModel, key)
+        if entry is not None:
+            entry.val = value
+            self.session.merge(entry)
+        else:
+            self.session.add(KeyValModel(key=key, val=value))
 
 
 _M = TypeVar('_M', bound=Base)
@@ -73,7 +99,7 @@ _M = TypeVar('_M', bound=Base)
 class ModelMixin(Generic[_M]):
     """ Mixin for classes that are linked to a model """
     _model: Optional[_M] = None
-    identifier: str
+    identifier: str | int
 
     def __init__(self, model_class: type[_M]):
         self.__model_class = model_class
@@ -104,8 +130,8 @@ class ModelMixin(Generic[_M]):
         self._model = None
 
 
-engine: Engine = None           # type: ignore
-Session: sessionmaker = None    # type: ignore
+engine: Engine = None  # type: ignore
+Session: sessionmaker = None  # type: ignore
 
 
 def setup(config: Config):

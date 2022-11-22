@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Environments (AISysProj Server){% endblock %}
+
+{% block body %}
+    <h1>Environments</h1>
+{#    There are currently {{ number }} tournaments running on this server:
+    <ul>
+        {% for e in entries %}
+            <li><a href="{{e.link}}">{{e.tournament.displayname}}</a></li>
+        {% endfor %}
+    </ul>
+    <p style="color:gray">AISysProj server version {{ version }}</p>
+#}
+    {% for eg in env_groups %}
+        <h4>{{ eg }}</h4>
+        <ul>
+            {% for e in envs[eg] %}
+                <li><a href="{{ urls[e.identifier] }}">{{ e.display_name }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+{% endblock %}

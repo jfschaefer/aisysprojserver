@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Run {{ run_data.run_id }}{% endblock %}
+
+{% block body %}
+
+    <h1>Run {{ run_data.run_id }} (agent {{ run_data.agent_name }}</h1>
+
+    <p>
+    {% for re in run_entries %}
+        <code>{{ re }}</code>
+        <hr/>
+    {% endfor %}
+    <b>Result: {{ result }}</b>
+    </p>
+{% endblock %}
+

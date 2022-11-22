@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ agent_data.agent_name }}{% endblock %}
+
+{% block extrahead %}
+    <style>
+        td {
+            padding-left: 2em;
+            padding-right: 2em;
+            text-align: left;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <h1>{{ agent_data.agent_name }}</h1>
+
+    <table>
+        <tr>
+            <td>Best rating</td>
+            <td>{{ agent_data.agent_rating }} {% if not agent_data.fully_evaluated %}<em>(Not enough runs to be fully evaluated)</em>{% endif %}</td>
+        </tr>
+        <tr>
+            <td>{% if agent_data.fully_evaluated %}Current rating{% else %}Estimated rating{% endif %}</td>
+            <td>{{ agent_data.current_agent_rating }}</td>
+        </tr>
+        <tr>
+            <td>Finished runs</td>
+            <td>{{ agent_data.total_number_of_runs }}</td>
+        </tr>
+    </table>
+
+    <h2>Recently finished runs</h2>
+    {% if not agent_data.recent_runs %}
+    <em>No recent runs available</em>
+    {% endif %}
+    <ul>
+    {% for run in agent_data.recent_runs %}
+        <li><a href="{{ url_for('website.run_page', env=env.env_info.identifier, runid=run.run_id)}}">Run {{ run.run_id }} (Outcome: {{ run.outcome }})</a></li>
+    {% endfor %}
+    </ul>
+
+{% endblock %}

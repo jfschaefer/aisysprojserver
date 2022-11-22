@@ -33,3 +33,11 @@ class EnvSettings:
 
     # (maximum) number of action requests sent per response
     NUMBER_OF_ACTION_REQUESTS: int = 5
+
+
+    # ************************
+    # * SETTINGS FOR DISPLAY *
+    # ************************
+
+    # HTML description of the environment
+    DESCRIPTION: str = ''

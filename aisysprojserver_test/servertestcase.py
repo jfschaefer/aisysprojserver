@@ -60,8 +60,10 @@ class ServerTestCase(unittest.TestCase):
         code, content = upload_plugin(cls.admin, package)
         assert code == 200, 'Failed to upload plugin. Content: ' + str(content)
 
-        cls.admin.make_env('simple_nim.environment:Environment', 'test-nim',
-                           'Test Environment (Nim)', config='{}', overwrite=False)
+        code, _ = cls.admin.make_env('simple_nim.environment:Environment', 'test-nim',
+                                     'Test Environment (Nim)', display_group='Test Environments', config={},
+                                     overwrite=False)
+        assert code == 200, 'Failed to create test-nim'
         code, cls._testuser_content = cls.admin.new_user('test-nim', 'testuser')
         assert code == 200, 'Failed to create testuser'
 

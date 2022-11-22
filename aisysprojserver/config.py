@@ -13,9 +13,9 @@ def get() -> Config:
 
 
 class Config:
-    MAX_CONTENT_LENGTH = 1000000  # respond 413 otherwise
+    MAX_CONTENT_LENGTH: int = 1000000  # respond 413 otherwise
 
-    PLUGINS_DIR = Path('/tmp/plugins')  # directory for environment implementations etc.
+    PLUGINS_DIR: Path = Path('/tmp/plugins')  # directory for environment implementations etc.
 
     # Logging
     MIN_LOG_LEVEL = logging.INFO

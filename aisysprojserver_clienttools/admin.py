@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 class AdminClient:
     def __init__(self, url: str, password: str):
+        if not url.endswith('/'):
+            url += '/'
         self.base_url = url
         self.pwd = password
 
@@ -38,14 +40,9 @@ class AdminClient:
             'admin-pwd': self.pwd,
         })
 
-    def make_env(self, env_class: str, identifier: str, display_name: str, config: str = False,
+    def make_env(self, env_class: str, identifier: str, display_name: str, display_group: str, config: Any = {},
                  overwrite: bool = False) -> tuple[int, Any]:
-        data = MakeEnvRequest(env_class=env_class, display_name=display_name, config=config, overwrite=overwrite).to_dict()
+        data = MakeEnvRequest(env_class=env_class, display_name=display_name, display_group=display_group,
+                              config=config, overwrite=overwrite).to_dict()
         data['admin-pwd'] = self.pwd
         return self.send_request(f'makeenv/{identifier}', method='PUT', json=data)
-
-# class MakeEnvRequest:
-#     env_class: str
-#     display_name: str
-#     settings: str = ''
-#     overwrite: bool = False

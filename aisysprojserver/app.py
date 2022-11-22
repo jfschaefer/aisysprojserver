@@ -7,8 +7,9 @@ from typing import Optional
 from flask import Flask, g, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
-from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act
-from aisysprojserver.config import Config
+from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act, \
+    website
+from aisysprojserver.config import Config, TestConfig
 from aisysprojserver.plugins import PluginManager
 
 
@@ -46,9 +47,9 @@ def http_exception_handler(exception):
         return InternalServerError(description).get_response()
 
 
-def create_app(configuration: Optional[Config]) -> Flask:
+def create_app(configuration: Optional[Config] = None) -> Flask:
     if not configuration:
-        configuration = Config()
+        configuration = TestConfig()
 
     logging.basicConfig(format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
                         filename=configuration.LOG_FILE,
@@ -73,6 +74,12 @@ def create_app(configuration: Optional[Config]) -> Flask:
     app.register_blueprint(active_env_management.bp)
     app.register_blueprint(plugins.bp)
     app.register_blueprint(act.bp)
+    app.register_blueprint(website.bp)
+    website.cache.init_app(app)
 
     return app
 
+
+if __name__ == '__main__':
+    app = create_app()
+    app.run()

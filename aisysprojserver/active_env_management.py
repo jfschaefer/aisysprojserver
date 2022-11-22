@@ -1,5 +1,6 @@
 import dataclasses
 import re
+from typing import Any
 
 from dataclasses_json import dataclass_json, Undefined
 from flask import Blueprint, request, g, jsonify
@@ -8,6 +9,7 @@ from werkzeug.exceptions import BadRequest
 
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.authentication import require_admin_auth
+from aisysprojserver.json_util import json_dump
 from aisysprojserver.plugins import PluginManager
 
 bp = Blueprint('active_env_management', __name__)
@@ -18,7 +20,9 @@ bp = Blueprint('active_env_management', __name__)
 class MakeEnvRequest:
     env_class: str
     display_name: str
-    config: str = ''
+    display_group: str
+    # TODO: Should be any, but that does not work because of https://github.com/lidatong/dataclasses-json/issues/292
+    config: dict
     overwrite: bool = False
 
 
@@ -33,9 +37,10 @@ def makeenv(env: str):
         raise BadRequest(f'Illegal environment name {env!r}')
 
     try:
-        request_data: MakeEnvRequest = MakeEnvRequest.schema().load(content)
+        schema = MakeEnvRequest.schema()
+        request_data: MakeEnvRequest = schema.load(content)
     except ValidationError as e:
-        raise BadRequest('Bad JSON body: ' + e.messages[0])
+        raise BadRequest('Bad JSON body: ' + repr(e.messages))
 
     PluginManager.get(request_data.env_class)  # ensure that it exists
 
@@ -43,7 +48,8 @@ def makeenv(env: str):
         identifier=env,
         env_class=request_data.env_class,
         display_name=request_data.display_name,
-        config=request_data.config,
+        display_group=request_data.display_group,
+        config=json_dump(request_data.config),
         overwrite=request_data.overwrite,
     )
 
