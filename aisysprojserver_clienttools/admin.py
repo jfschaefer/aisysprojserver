@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -13,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class AdminClient:
-    def __init__(self, url: str, password: str):
+    def __init__(self, url: str, password: Optional[str] = None):
         if not url.endswith('/'):
             url += '/'
         self.base_url = url
-        self.pwd = password
+        if password is None:
+            with open(Path('~/.aisysprojserver_auth').expanduser(), 'r') as fp:
+                password = fp.read().strip()
+        self.pwd: str = password
 
     @classmethod
     def from_file(cls, path: Path) -> AdminClient:
@@ -35,10 +38,13 @@ class AdminClient:
         return response.status_code, response.json()
 
     def new_user(self, env: str, user: str, overwrite: bool = False) -> tuple[int, Any]:
-        return self.send_request(f'makeagent/{env}/{user}', method='POST', json={
+        code, content = self.send_request(f'makeagent/{env}/{user}', method='POST', json={
             'overwrite': overwrite,
             'admin-pwd': self.pwd,
         })
+        if code == 200:
+            content['url'] = self.base_url
+        return code, content
 
     def make_env(self, env_class: str, identifier: str, display_name: str, display_group: str, config: Any = {},
                  overwrite: bool = False) -> tuple[int, Any]:
@@ -46,3 +52,15 @@ class AdminClient:
                               config=config, overwrite=overwrite).to_dict()
         data['admin-pwd'] = self.pwd
         return self.send_request(f'makeenv/{identifier}', method='PUT', json=data)
+
+    def print_errors(self):
+        code, errors = self.send_request('errors', method='GET', json={'admin-pwd': self.pwd})
+        assert code == 200
+        for error in errors:
+            print('---------------ERROR--------------------')
+            print(error)
+
+    def print_diskusage(self):
+        code, content = self.send_request('diskusage', method='GET', json={'admin-pwd': self.pwd})
+        assert code == 200
+        print(content)

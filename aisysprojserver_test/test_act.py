@@ -6,7 +6,7 @@ from aisysprojserver_test.servertestcase import ServerTestCase
 
 
 def get_strong_nim_move(percept):
-    return min((percept % 4), 3)
+    return max((percept % 4), 1)
 
 
 class ActTest(ServerTestCase):

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import dataclasses
 from typing import Optional, Any
@@ -13,6 +15,10 @@ class ActionResult:
     message: Optional[str] = None            # A message for the agent (considered an error message if new_state is None)
     action_extra_info: Any = None            # some sort of extra information related to the action (for action history)
     outcome: Optional[Any] = None            # run is over if not None
+
+    @classmethod
+    def error(cls, message: str) -> ActionResult:
+        return ActionResult(new_state=None, message=message)
 
 
 @dataclasses.dataclass(frozen=True)

@@ -33,7 +33,7 @@ def makeenv(env: str):
     content = request.get_json()
     if not content:
         raise BadRequest('Expected JSON body')
-    if not re.match('^[a-zA-Z0-9-]+$', env):
+    if not re.match('^[a-zA-Z0-9-.]+$', env):
         raise BadRequest(f'Illegal environment name {env!r}')
 
     try:

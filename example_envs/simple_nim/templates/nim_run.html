@@ -4,7 +4,7 @@
 
 {% block body %}
 
-    <h1>Run {{ run_data.run_id }} (agent {{ run_data.agent_name }}</h1>
+    <h1>Run {{ run_data.run_id }} ({{ run_data.agent_name }})</h1>
 
     <p>
     {% for re in run_entries %}

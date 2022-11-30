@@ -6,9 +6,10 @@ from flask import Blueprint, url_for
 from flask_caching import Cache
 from werkzeug.exceptions import NotFound, BadRequest
 
-from aisysprojserver import active_env
+from aisysprojserver import active_env, __version__
 from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
 from aisysprojserver.agent_data import AgentData
+from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
 
 AISYSPROJ_TEMPLATES: Path = Path(__file__).parent/'templates'
@@ -17,14 +18,14 @@ TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for}
 cache = Cache()
 bp = Blueprint('website', __name__)
 
+_jinja_env = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(AISYSPROJ_TEMPLATES),
+    autoescape=jinja2.select_autoescape()
+)
 
 @bp.route('/')
 @cache.cached(timeout=10)
 def frontpage():
-    j_env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(AISYSPROJ_TEMPLATES),
-        autoescape=jinja2.select_autoescape()
-    )
 
     envs_list: list[ActiveEnvironment] = get_all_active_envs()
     envs: dict[str, list[ActiveEnvironment]] = defaultdict(list)
@@ -40,8 +41,8 @@ def frontpage():
 
     env_groups: list[str] = list(sorted(envs.keys()))
 
-    return j_env.get_template('frontpage.html').render(envs=envs, urls=urls, env_groups=env_groups,
-                                                       **TEMPLATE_STANDARD_KWARGS)
+    return _jinja_env.get_template('frontpage.html').render(envs=envs, urls=urls, env_groups=env_groups,
+                                                            version=__version__, **TEMPLATE_STANDARD_KWARGS)
 
 
 @bp.route('/env/<env>')
@@ -79,3 +80,10 @@ def run_page(env: str, runid: str):
     return active_env.get_env_instance().view_run(run.to_run_data())
 
 
+@bp.route('/plugins')
+@cache.cached(timeout=3)
+def plugins_page():
+    plugins = [(plugin.package_name, plugin.version) for plugin in PluginManager.plugins.values()]
+    plugins.sort()
+    return _jinja_env.get_template('plugins_page.html').render(plugins=plugins, version=__version__,
+                                                               **TEMPLATE_STANDARD_KWARGS)

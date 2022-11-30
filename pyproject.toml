@@ -1,0 +1,21 @@
+[project]
+name = "aisysprojserver"
+version = "0.0.4"
+authors = [
+    { name="Jan Frederik Schaefer" },
+]
+description = "A server for testing AI agents, used for the AI Systems Project at FAU"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[package]
+include=["aisysprojserver/templates", "aisysprojserver/static", "aisysprojserver_clienttools"]
+
+# setuptools doesn't support PEP 660
+# [build-system]
+# requires = ["setuptools>=62.6"]
+# build-backend = "setuptools.build_meta"
+
+[build-system]
+requires = ["flit_core>=3.2"]
+build-backend = "flit_core.buildapi"

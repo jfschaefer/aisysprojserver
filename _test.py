@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 import random
 from time import sleep
@@ -31,10 +32,11 @@ else:
 
 def play(state):
     sleep(0.3)
-    action = random.randint(1, min(state, 3))
-    print(state,action)
+    # action = random.randint(1, min(state, 3))
+    action = max((state % 4), 1)
     return action
 
+logging.basicConfig(level=logging.INFO)
 
 run('/tmp/aisystestconfig.json', play)
 

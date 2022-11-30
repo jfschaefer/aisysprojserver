@@ -6,7 +6,6 @@
 import itertools
 import json
 import logging
-import math
 
 import requests
 import time
@@ -25,19 +24,22 @@ def run(config_file, action_function, single_request=False):
 
     actions = []
     for request_number in itertools.count():
-        logger.info(f'Iteration {request_number}')
+        logger.info(f'Iteration {request_number} (sending {len(actions)} actions)')
         # send request
-        logger.info('Sending actions', actions)
         response = requests.put(f'{config["url"]}/act/{config["env"]}', json={
             'agent': config['agent'],
             'pwd': config['pwd'],
             'actions': actions,
-            'single-request': single_request,
+            'single_request': single_request,
         })
-        logger.info('Response status:', response.status_code)
-        logger.info('Response text:', response.text)
         if response.status_code == 200:
-            action_requests = response.json()['action-requests']
+            response_json = response.json()
+            for error in response_json['errors']:
+                logger.error(f'Error message from server: {error}')
+            for message in response_json['messages']:
+                logger.info(f'Message from server: {message}')
+
+            action_requests = response_json['action-requests']
             if not action_requests:
                 logger.info('The server has no new action requests - waiting for 1 second.')
                 time.sleep(1)  # wait a moment to avoid overloading the server and then try again

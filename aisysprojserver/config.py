@@ -13,8 +13,11 @@ def get() -> Config:
 
 
 class Config:
+    CONFIG_NAME: str = 'test'
+
     MAX_CONTENT_LENGTH: int = 1000000  # respond 413 otherwise
 
+    PERSISTENT: Path = Path('/tmp')
     PLUGINS_DIR: Path = Path('/tmp/plugins')  # directory for environment implementations etc.
 
     # Logging
@@ -39,3 +42,12 @@ class Config:
 class TestConfig(Config):
     # password for tests is 'test-admin-password'
     ADMIN_AUTH = 'sha256:f7a03f48c0e2aa2d5e55ca186c20032ddbf53b7f5f93fce387d65c3f83433e8d'
+
+
+class UwsgiConfig(Config):
+    ADMIN_AUTH = 'sha256:ac6e9d130abfb10f002b05a85a00c2193ce065d4a64b5ee7fb98c70378e2d290'
+    CONFIG_NAME = 'uwsgi'
+    PERSISTENT: Path = Path('/app/persistent')
+    PLUGINS_DIR: Path = Path('/app/persistent/plugins')
+    DATABASE_URI = 'sqlite:////app/persistent/aisysprojserver.db'
+    LOG_FILE = '/app/persistent/aisysprojserver.log'

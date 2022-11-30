@@ -38,7 +38,8 @@ class ActManager:
         self.account.require_authenticated()
         self.account.require_active()
 
-        self.act_config: ActConfig = ActConfig.schema().load(content['config'] if 'config' in content else {})
+        # self.act_config: ActConfig = ActConfig.schema().load(content['config'] if 'config' in content else {})
+        self.act_config: ActConfig = ActConfig.schema().load(content)
 
         self.env: GenericEnvironment = self.active_env.get_env_instance()
 
@@ -51,6 +52,7 @@ class ActManager:
             self.errors.append(f'Malformed content: {json_dump(action_json)}')
             return
         if (match := _run_id_regex.match(action_json['run'])) is None:
+            print(action_json['run'])
             self.errors.append(f'Malformed run identifier')
             return
         run_id = int(match.group('runid'))
@@ -206,6 +208,7 @@ class ActManager:
                     outcome=json_dump(None)
                 )
                 session.add(new_run)
+                session.commit()
                 runs.append(new_run)
 
             runs = runs[:max_requests]

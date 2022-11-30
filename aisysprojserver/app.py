@@ -8,12 +8,12 @@ from flask import Flask, g, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
 from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act, \
-    website
+    website, admin
 from aisysprojserver.config import Config, TestConfig
 from aisysprojserver.plugins import PluginManager
 
 
-def http_exception_handler(exception):
+def exception_handler(exception):
     if isinstance(exception, HTTPException):
         response = exception.get_response()
         if hasattr(g, 'isJSON') and g.isJSON:
@@ -34,10 +34,15 @@ def http_exception_handler(exception):
     except Unauthorized:
         pass
     if is_admin:
-        description = '\n\n'.join(traceback.format_tb(exception.__traceback__))
+        description = ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__))
     else:
         # exception can leak sensitive data – don't forward them to non-admins
         description = type(exception).__name__
+
+    admin.ERROR_BUFFER.append(''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
+    while len(admin.ERROR_BUFFER) > 50:
+        admin.ERROR_BUFFER.pop(0)   # not exactly efficient, I think, but easy and not a problem
+
     if hasattr(g, 'isJSON') and g.isJSON:
         response = jsonify({'errorcode': 500, 'errorname': 'Internal Server Error',
                             'description': description})
@@ -69,12 +74,13 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
     app = Flask(__name__)
     configuration.register(app)
     app.config.from_object(configuration)
-    app.register_error_handler(Exception, http_exception_handler)
+    app.register_error_handler(Exception, exception_handler)
     app.register_blueprint(agent_account_management.bp)
     app.register_blueprint(active_env_management.bp)
     app.register_blueprint(plugins.bp)
     app.register_blueprint(act.bp)
     app.register_blueprint(website.bp)
+    app.register_blueprint(admin.bp)
     website.cache.init_app(app)
 
     return app

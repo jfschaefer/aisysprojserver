@@ -85,9 +85,9 @@ class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
             run_entries.append(f'Number of items: {remaining}, then '
                                f'you removed {entry.action}, then '
                                f'I removed {entry.extra_info}')
-            remaining -= entry.action + entry.extra_info
+            remaining -= entry.action + (entry.extra_info or 0)
         return jinja_environment.get_template('nim_run.html').render(
-            run_data=RunData,
+            run_data=run_data,
             run_entries=run_entries,
             result={1: 'You won', 0: 'You lost', None: 'The game is still on-going'}[run_data.outcome],
             **TEMPLATE_STANDARD_KWARGS
