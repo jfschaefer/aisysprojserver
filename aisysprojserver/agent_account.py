@@ -46,6 +46,9 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
                 raise BadRequest(f'Did not expect an agent to be specified in the request body')
         account = AgentAccount(environment, agent, is_client=True)
 
+        if not account.exists():
+            raise Unauthorized(description='unknown agent')
+
         # try authentication
         if 'pwd' in content:
             pwd = content['pwd']

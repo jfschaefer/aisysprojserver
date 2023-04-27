@@ -9,7 +9,7 @@ from zipfile import ZipFile
 from flask import Blueprint, request, g, jsonify
 
 from aisysprojserver.authentication import require_admin_auth
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class BadPluginError(Exception):
@@ -77,6 +77,7 @@ class PluginManager:
 
     @classmethod
     def load_from_zipfile(cls, zf: ZipFile) -> str:
+        logger.info('Trying to load plugin from zip file')
         filenames = zf.namelist()
         if not filenames:
             raise BadPluginError('Empty plugin')
@@ -86,6 +87,7 @@ class PluginManager:
                 raise BadPluginError(f'Unexpected file {filename} in package {package_name}')
         if package_name in cls.plugins:
             cls.plugins[package_name].unimport()
+        logger.info(f'Extracting plugin {package_name}')
         zf.extractall(cls.plugins_dir)
 
         cls.reload_all_plugins()

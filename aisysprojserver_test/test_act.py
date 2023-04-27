@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import time
@@ -37,3 +38,15 @@ class ActTest(ServerTestCase):
         self.require_standard_setup()
         for i in range(5):
             self.assertEqual(self.act(self._testuser_content, 2, get_strong_nim_move), 200)
+
+    def test_act_bad_username(self):
+        self.require_standard_setup()
+        config = copy.deepcopy(self._testuser_content)
+        config['agent'] = 'wrongagent'
+        self.assertEqual(self.act(config, 2, get_strong_nim_move), 401)
+
+    def test_act_bad_password(self):
+        self.require_standard_setup()
+        config = copy.deepcopy(self._testuser_content)
+        config['pwd'] = 'wrongpassword'
+        self.assertEqual(self.act(config, 2, get_strong_nim_move), 401)

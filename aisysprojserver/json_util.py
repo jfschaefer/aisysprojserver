@@ -10,13 +10,13 @@ try:
     def json_load(string: str) -> Any:
         return orjson.loads(string)
 
-except ImportError:
-    logging.warning(f'Failed to import orjson - following back to the slower json implementation from the standard library')
+except (ImportError, ModuleNotFoundError):
+    # logging.warning(f'Failed to import orjson - following back to the slower json implementation from the standard library')
     import json
 
     def json_dump(thing) -> str:
         return json.dumps(thing, separators=(',', ':'))
 
     def json_load(string: str) -> Any:
-        return orjson.loads(string)
+        return json.loads(string)
 

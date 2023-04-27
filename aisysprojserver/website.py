@@ -13,7 +13,7 @@ from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
 
 AISYSPROJ_TEMPLATES: Path = Path(__file__).parent/'templates'
-TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for}
+TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for, 'format': format}
 
 cache = Cache()
 bp = Blueprint('website', __name__)
