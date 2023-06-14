@@ -6,13 +6,13 @@ from flask import Blueprint, url_for
 from flask_caching import Cache
 from werkzeug.exceptions import NotFound, BadRequest
 
-from aisysprojserver import active_env, __version__
+from aisysprojserver import __version__
 from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
 from aisysprojserver.agent_data import AgentData
 from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
 
-AISYSPROJ_TEMPLATES: Path = Path(__file__).parent/'templates'
+AISYSPROJ_TEMPLATES: Path = Path(__file__).parent / 'templates'
 TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for, 'format': format}
 
 cache = Cache()
@@ -23,23 +23,23 @@ _jinja_env = jinja2.Environment(
     autoescape=jinja2.select_autoescape()
 )
 
+
 @bp.route('/')
 @cache.cached(timeout=10)
 def frontpage():
-
     envs_list: list[ActiveEnvironment] = get_all_active_envs()
     envs: dict[str, list[ActiveEnvironment]] = defaultdict(list)
     for env in envs_list:
         envs[env.display_group].append(env)
     for v in envs.values():
-        v.sort(key = lambda ae: ae.display_name)
+        v.sort(key=lambda ae: ae.display_name)
 
     urls: dict = {
         env.identifier: url_for('website.env_page', env=env.identifier)
         for env in envs_list
     }
 
-    env_groups: list[str] = list(sorted(envs.keys()))
+    env_groups: list[str] = list(sorted(envs.keys(), reverse=True))
 
     return _jinja_env.get_template('frontpage.html').render(envs=envs, urls=urls, env_groups=env_groups,
                                                             version=__version__, **TEMPLATE_STANDARD_KWARGS)

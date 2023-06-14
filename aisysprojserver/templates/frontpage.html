@@ -5,12 +5,14 @@
 {% block body %}
     <h1>Environments</h1>
     {% for eg in env_groups %}
-        <h4>{{ eg }}</h4>
-        <ul>
-            {% for e in envs[eg] %}
-                <li><a href="{{ urls[e.identifier] }}">{{ e.display_name }}</a></li>
-            {% endfor %}
-        </ul>
+        <details>
+            <summary>{{ eg }}</summary>
+            <ul>
+                {% for e in envs[eg] %}
+                    <li><a href="{{ urls[e.identifier] }}">{{ e.display_name }}</a></li>
+                {% endfor %}
+            </ul>
+        </details>
     {% endfor %}
     <hr/>
     <p style="color:gray">AISysProj server version {{ version }}</p>

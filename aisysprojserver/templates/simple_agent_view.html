@@ -18,7 +18,7 @@
     <table>
         <tr>
             <td>Best rating</td>
-            <td>{{ agent_data.agent_rating }} {% if not agent_data.fully_evaluated %}<em>(Not enough runs to be fully evaluated)</em>{% endif %}</td>
+            <td>{{ format(agent_data.agent_rating).replace('inf', '∞') }} {% if not agent_data.fully_evaluated %}<em>(Not enough runs to be fully evaluated)</em>{% endif %}</td>
         </tr>
         <tr>
             <td>{% if agent_data.fully_evaluated %}Current rating{% else %}Estimated rating{% endif %}</td>

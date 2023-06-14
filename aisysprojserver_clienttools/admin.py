@@ -64,3 +64,8 @@ class AdminClient:
         code, content = self.send_request('diskusage', method='GET', json={'admin-pwd': self.pwd})
         assert code == 200
         print(content)
+
+    def get_agent_results(self, env: str):
+        code, content = self.send_request(f'results/{env}', method='GET')
+        assert code == 200
+        return content
