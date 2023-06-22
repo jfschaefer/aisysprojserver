@@ -17,13 +17,14 @@
     {{ env.settings.DESCRIPTION|safe }}
 
     <h2>Fully evaluated agents (requires {{ env.settings.MIN_RUNS_FOR_FULLY_EVALUATED }} runs)</h2>
-    <p>
     {% if evaluated_agents %}
+        <p>
         The <em>current rating</em> shows the rating of your agent according to the more recent runs.
         The <em>best rating</em> is the highest value that the <em>current rating</em> column ever had,
         and it is the only rating that actually matters in the end (e.g. for grading).
         In other words, you do not have to worry if <em>current rating</em> is substantially lower than
         <em>best rating</em> as long as your code is able to produce a rating similar to <em>best rating</em>.
+        </p>
 
         <table>
             <thead>
@@ -44,14 +45,12 @@
             </tbody>
         </table>
     {% else %}
-        There are currently no fully evaluated agents.
+        <p>There are currently no fully evaluated agents.</p>
     {% endif %}
-    </p>
 
     <h2>Not fully evaluated agents</h2>
-    <p>
     {% if unevaluated_agents %}
-        The following agents have not had enough runs to be considered fully evaluated.
+        <p>The following agents have not had enough runs to be considered fully evaluated.</p>
         <table>
             <thead>
             <tr>
@@ -72,8 +71,7 @@
         </table>
         <br/>
     {% else %}
-        There are currently no agents that are not fully evaluated.
+        <p>There are currently no agents that are not fully evaluated.</p>
     {% endif %}
-        Note that agents that had no runs might not be listed.
-    </p>
+    <p>Note that agents that had no runs might not be listed.</p>
 {% endblock %}
