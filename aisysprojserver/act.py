@@ -10,6 +10,7 @@ from werkzeug.exceptions import BadRequest
 from aisysprojserver import models
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
+from aisysprojserver.agent_data import AgentData
 from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionHistoryEntry
 from aisysprojserver.json_util import json_load, json_dump
 from aisysprojserver.models import AgentDataModel, RunModel, KeyValAccess
@@ -58,6 +59,8 @@ class ActManager:
         run_id = int(match.group('runid'))
         action_no = int(match.group('actionno'))
 
+        do_cleanup: bool = False
+
         with models.Session() as session:
             # we do a separate transaction for each action - less efficient, but
             # more robust if we want to parallelize
@@ -105,13 +108,17 @@ class ActManager:
             run_model.history = json_dump(history)
 
             if action_result.outcome is not None:
-                self.process_outcome(action_result.outcome, run_model, session)
+                do_cleanup = self.process_outcome(action_result.outcome, run_model, session)
 
             run_model.outstanding_action = False
             session.add(run_model)
             session.commit()
 
-    def process_outcome(self, outcome: Any, run_model: RunModel, session):
+        if do_cleanup:
+            AgentData(self.account.identifier).delete_nonrecent_runs()
+
+    def process_outcome(self, outcome: Any, run_model: RunModel, session) -> bool:
+        """ returns True iff cleanup is recommended """
         agent_data = self.get_agent_data_model(session)
         run_model.outcome = json_dump(outcome)
         run_model.finished = True
@@ -152,6 +159,8 @@ class ActManager:
         kva[key] = json_dump(runs2[-20:])
 
         session.add(agent_data)
+
+        return agent_data.total_runs % 7319 == 0  # Reasoning: We should do the cleanup too often because it can mess with debugging.
 
     def get_agent_data_model(self, session) -> AgentDataModel:
         agent_data_model = session.get(AgentDataModel, self.account.identifier)

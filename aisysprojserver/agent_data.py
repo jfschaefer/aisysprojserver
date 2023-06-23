@@ -35,9 +35,29 @@ class AgentData(models.ModelMixin[models.AgentDataModel]):
             fully_evaluated=m.fully_evaluated,
         )
 
+    def delete_nonrecent_runs(self, session: Optional = None):
+        keep = [rr.run_id for rr in self.to_agent_data_summary().recent_runs]
+        cmd = sqlalchemy.delete(models.RunModel).where(
+            models.RunModel.agent == self.identifier,
+            models.RunModel.finished == True,
+            models.RunModel.identifier.not_in(keep),
+            )
+        if session:
+            session.execute(cmd)
+        else:
+            with models.Session() as session:
+                session.execute(cmd)
+                session.commit()
+
 
 def get_all_agentdata_for_env(env_id: str) -> list[AgentData]:
     with models.Session() as session:
         identifiers = session.execute(sqlalchemy.select(models.AgentDataModel.identifier).where(models.AgentDataModel.environment == env_id))
+        return [AgentData(identifier[0]) for identifier in identifiers]
+
+
+def get_all_agentdata() -> list[AgentData]:
+    with models.Session() as session:
+        identifiers = session.execute(sqlalchemy.select(models.AgentDataModel.identifier))
         return [AgentData(identifier[0]) for identifier in identifiers]
 

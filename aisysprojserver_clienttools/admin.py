@@ -65,7 +65,15 @@ class AdminClient:
         assert code == 200
         print(content)
 
-    def get_agent_results(self, env: str):
-        code, content = self.send_request(f'results/{env}', method='GET')
+    def get_agent_results(self, env: Optional[str] = None):
+        if env is not None:
+            code, content = self.send_request(f'results/{env}', method='GET')
+        else:
+            code, content = self.send_request(f'results', method='GET')
+        assert code == 200
+        return content
+
+    def remove_nonrecent_runs(self):
+        code, content = self.send_request('removenonrecentruns', method='GET', json={'admin-pwd': self.pwd})
         assert code == 200
         return content

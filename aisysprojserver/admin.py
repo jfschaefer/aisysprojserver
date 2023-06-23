@@ -3,9 +3,11 @@ import subprocess
 from flask import Blueprint, g, jsonify
 from werkzeug.exceptions import NotFound
 
-from aisysprojserver import config
-from aisysprojserver.active_env import ActiveEnvironment
+from aisysprojserver import config, models
+from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
+from aisysprojserver.agent_data import get_all_agentdata
 from aisysprojserver.authentication import require_admin_auth
+from aisysprojserver.website import cache
 
 ERROR_BUFFER: list[str] = []
 
@@ -27,19 +29,41 @@ def errors():
     return jsonify(ERROR_BUFFER)
 
 
-@bp.route('/results/<env_id>')
-def results(env_id: str):
-    g.isJSON = True
-    active_env = ActiveEnvironment(env_id)
+def get_env_results(active_env: ActiveEnvironment):
     if not active_env.exists():
         raise NotFound()
 
-    result: list[dict] = []
+    result: dict[str, dict] = {}
     for agent in active_env.get_env_data().agents:
-        result.append({
-            'name': agent.agent_name,
+        result[agent.agent_name] = {
             'rating': agent.agent_rating,
             'fully-evaluated': agent.fully_evaluated,
-        })
+            'total-runs': agent.total_number_of_runs,
+        }
+    return result
 
-    return jsonify(result)
+
+@bp.route('/results/<env_id>')
+@cache.cached(timeout=10)
+def results_env(env_id: str):
+    g.isJSON = True
+    return jsonify(get_env_results(ActiveEnvironment(env_id)))
+
+
+@bp.route('/results')
+@cache.cached(timeout=10)
+def results():
+    g.isJSON = True
+    envs_list: list[ActiveEnvironment] = get_all_active_envs()
+    return jsonify({ae.identifier: get_env_results(ae) for ae in envs_list})
+
+
+@bp.route('/removenonrecentruns')
+def removenonrecentruns():
+    g.isJSON = True
+    require_admin_auth()
+    for agent_data in get_all_agentdata():
+        agent_data.delete_nonrecent_runs()
+    with models.Session() as session:
+        session.execute('VACUUM')
+    return jsonify({'result': 'done'})
