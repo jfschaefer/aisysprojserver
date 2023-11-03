@@ -1,0 +1,2 @@
+sphinxcontrib.apidoc
+sphinx-rtd-theme

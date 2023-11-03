@@ -1,7 +1,8 @@
 """
-    To use this implementation, you simply have to implement `get_action` such that it returns a legal action.
-    You can then let your agent compete on the server by calling
-        python3 client_simple.py path/to/your/config.json
+To use this implementation, you simply have to implement `get_action` such that it returns a legal action.
+You can then let your agent compete on the server by calling
+
+    python3 client_simple.py path/to/your/config.json
 """
 import itertools
 import json

@@ -1,10 +1,11 @@
 """ Functionality for password hashing and checking.
 
 Design decisions:
+
 * The way a password is stored is indicated by a prefix.
-    That makes it possible to change the scheme later on if desired.
+  That makes it possible to change the scheme later on if desired.
 * We do not allow users to set a password (the server sets high-entropy passwords).
-    That way we don't have to use slow hashing algorithms like bcrypt.
+  That way we don't have to use slow hashing algorithms like bcrypt.
 """
 import base64
 import hashlib

@@ -9,8 +9,10 @@ from aisysprojserver_clienttools.admin import AdminClient
 logger = logging.getLogger(__name__)
 
 
-def upload_plugin(client: AdminClient, package: Path):
+def upload_plugin(client: AdminClient, package: Path | str):
     assert package.is_dir()
+
+    package = Path(package)
 
     data = io.BytesIO()
     with ZipFile(data, 'w') as zf:
