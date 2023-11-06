@@ -54,7 +54,7 @@ class ActManager:
             return
         if (match := _run_id_regex.match(action_json['run'])) is None:
             print(action_json['run'])
-            self.errors.append(f'Malformed run identifier')
+            self.errors.append('Malformed run identifier')
             return
         run_id = int(match.group('runid'))
         action_no = int(match.group('actionno'))
@@ -160,7 +160,8 @@ class ActManager:
 
         session.add(agent_data)
 
-        return agent_data.total_runs % 7319 == 0  # Reasoning: We should do the cleanup too often because it can mess with debugging.
+        # Reasoning: We should do the cleanup too often because it can mess with debugging.
+        return agent_data.total_runs % 7319 == 0
 
     def get_agent_data_model(self, session) -> AgentDataModel:
         agent_data_model = session.get(AgentDataModel, self.account.identifier)
@@ -194,7 +195,10 @@ class ActManager:
                 return {'run': f'{run.identifier}#{len(history)}',
                         'percept': ar.content}
 
-            query = select(RunModel).where(RunModel.finished == False, RunModel.agent == self.account.identifier)
+            query = select(RunModel).where(
+                RunModel.finished == False,  # noqa: E712
+                RunModel.agent == self.account.identifier
+            )
             runs: list[RunModel] = list(session.scalars(query))
             runs.sort(key=lambda run: run.identifier)
 

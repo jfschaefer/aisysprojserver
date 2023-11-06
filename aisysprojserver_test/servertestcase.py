@@ -1,9 +1,8 @@
-import json
 import unittest
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from flask import Flask, url_for
+from flask import Flask
 from flask.testing import FlaskClient
 
 from aisysprojserver import config, models
@@ -55,7 +54,7 @@ class ServerTestCase(unittest.TestCase):
         models.Base.metadata.drop_all(bind=models.engine)
         models.Base.metadata.create_all(bind=models.engine)
 
-        package = Path(__file__).parent.parent/'example_envs'/'simple_nim'
+        package = Path(__file__).parent.parent / 'example_envs' / 'simple_nim'
         assert package.is_dir(), f'{package} does not exist'
         code, content = upload_plugin(cls.admin, package)
         assert code == 200, 'Failed to upload plugin. Content: ' + str(content)
@@ -69,13 +68,10 @@ class ServerTestCase(unittest.TestCase):
 
         cls._standard_setup_loaded = True
 
-#     def act_nim(self, username: Optional[str] = None, password: Optional[str] = None, try_win: bool = True,
-#                 move: Optional[int] = None):
-#         username = username or 'testuser'
-#         password = password or self._testuser_pwd
-
-
-
+    #     def act_nim(self, username: Optional[str] = None, password: Optional[str] = None, try_win: bool = True,
+    #                 move: Optional[int] = None):
+    #         username = username or 'testuser'
+    #         password = password or self._testuser_pwd
 
     @classmethod
     def require_standard_setup(cls):

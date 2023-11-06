@@ -1,6 +1,5 @@
 import dataclasses
 import re
-from typing import Any
 
 from dataclasses_json import dataclass_json, Undefined
 from flask import Blueprint, request, g, jsonify

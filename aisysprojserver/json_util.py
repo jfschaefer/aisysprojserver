@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 try:
@@ -11,7 +10,9 @@ try:
         return orjson.loads(string)
 
 except (ImportError, ModuleNotFoundError):
-    # logging.warning(f'Failed to import orjson - following back to the slower json implementation from the standard library')
+    # logging.warning(
+    #   f'Failed to import orjson - following back to the slower json implementation from the standard library'
+    # )
     import json
 
     def json_dump(thing) -> str:
@@ -19,4 +20,3 @@ except (ImportError, ModuleNotFoundError):
 
     def json_load(string: str) -> Any:
         return json.loads(string)
-

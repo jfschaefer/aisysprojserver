@@ -69,7 +69,7 @@ class AdminClient:
         if env is not None:
             code, content = self.send_request(f'results/{env}', method='GET')
         else:
-            code, content = self.send_request(f'results', method='GET')
+            code, content = self.send_request('results', method='GET')
         assert code == 200
         return content
 

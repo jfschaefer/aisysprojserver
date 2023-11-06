@@ -37,9 +37,9 @@ def require_admin_auth():
     if 'Authorization' in request.headers:
         val = request.headers['Authorization'].split()
         if len(val) != 2:
-            raise BadRequest(f'Bad value for Authorization header')
+            raise BadRequest('Bad value for Authorization header')
         elif val[0] != 'Basic':
-            raise BadRequest(f'Bad authentication scheme in Authorization header')
+            raise BadRequest('Bad authentication scheme in Authorization header')
         else:
             password = base64.decodebytes(val[1].encode()).decode()
     elif (content := request.get_json()) is not None and 'admin-pwd' in content:

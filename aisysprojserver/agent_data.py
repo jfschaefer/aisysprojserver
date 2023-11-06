@@ -39,9 +39,9 @@ class AgentData(models.ModelMixin[models.AgentDataModel]):
         keep = [rr.run_id for rr in self.to_agent_data_summary().recent_runs]
         cmd = sqlalchemy.delete(models.RunModel).where(
             models.RunModel.agent == self.identifier,
-            models.RunModel.finished == True,
+            models.RunModel.finished == True,  # noqa: E712
             models.RunModel.identifier.not_in(keep),
-            )
+        )
         if session:
             session.execute(cmd)
         else:
@@ -52,7 +52,9 @@ class AgentData(models.ModelMixin[models.AgentDataModel]):
 
 def get_all_agentdata_for_env(env_id: str) -> list[AgentData]:
     with models.Session() as session:
-        identifiers = session.execute(sqlalchemy.select(models.AgentDataModel.identifier).where(models.AgentDataModel.environment == env_id))
+        identifiers = session.execute(
+            sqlalchemy.select(models.AgentDataModel.identifier).where(models.AgentDataModel.environment == env_id)
+        )
         return [AgentData(identifier[0]) for identifier in identifiers]
 
 
@@ -60,4 +62,3 @@ def get_all_agentdata() -> list[AgentData]:
     with models.Session() as session:
         identifiers = session.execute(sqlalchemy.select(models.AgentDataModel.identifier))
         return [AgentData(identifier[0]) for identifier in identifiers]
-

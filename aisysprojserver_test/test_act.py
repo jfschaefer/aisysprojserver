@@ -1,7 +1,5 @@
 import copy
-import json
 import logging
-import time
 
 from aisysprojserver_test.servertestcase import ServerTestCase
 

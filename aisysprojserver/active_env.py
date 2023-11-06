@@ -77,4 +77,3 @@ def get_all_active_envs() -> list[ActiveEnvironment]:
     with models.Session() as session:
         identifiers = session.execute(sqlalchemy.select(models.ActiveEnvironmentModel.identifier))
         return [ActiveEnvironment(identifier[0]) for identifier in identifiers]
-

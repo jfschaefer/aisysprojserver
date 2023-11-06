@@ -37,13 +37,13 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
             raise BadRequest('Expected JSON body')
         if agent is None:
             if 'agent' not in content:
-                raise BadRequest(f'No agent was specified')
+                raise BadRequest('No agent was specified')
             agent = content['agent']
             if not isinstance(agent, str):
-                raise BadRequest(f'Bad value for field "agent"')
+                raise BadRequest('Bad value for field "agent"')
         else:
             if 'agent' in content:
-                raise BadRequest(f'Did not expect an agent to be specified in the request body')
+                raise BadRequest('Did not expect an agent to be specified in the request body')
         account = AgentAccount(environment, agent, is_client=True)
 
         if not account.exists():
@@ -53,7 +53,7 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
         if 'pwd' in content:
             pwd = content['pwd']
             if not isinstance(pwd, str):
-                raise BadRequest(f'Bad value for field "pwd"')
+                raise BadRequest('Bad value for field "pwd"')
 
             # if an authentication is provided, we require it to be correct
             # this means that later on we don't have to worry about retrieving the password from the request
@@ -67,7 +67,9 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
 
     def require_authenticated(self):
         if not self._authenticated:
-            raise Unauthorized(f'Agent requires authentication but no password was provided (this may be a server issue)')
+            raise Unauthorized(
+                'Agent requires authentication but no password was provided (this may be a server issue)'
+            )
 
     def is_active(self) -> bool:
         return self._require_model().status == AgentStatus.ACTIVE
@@ -94,7 +96,7 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
             session.commit()
 
             ac = models.AgentAccountModel(identifier=self.identifier, environment=self.environment,
-                                   password=default_pwd_hash(password), status=AgentStatus.ACTIVE)
+                                          password=default_pwd_hash(password), status=AgentStatus.ACTIVE)
             session.add(ac)
             session.commit()
 

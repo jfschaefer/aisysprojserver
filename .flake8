@@ -1,0 +1,16 @@
+[flake8]
+max-line-length = 120
+ignore =
+    # do not assign a lambda expression, use a def
+    E731
+    # ambiguous variable 'l' (and others)
+    E741
+    # line break before binary operator
+    W503
+    # line break after binary operator
+    W504
+exclude =
+    venv,
+    __pycache__,
+    doc/source/conf.py,
+

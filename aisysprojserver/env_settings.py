@@ -26,14 +26,12 @@ class EnvSettings:
     #     "min": Minimize the rating
     RATING_OBJECTIVE: str = 'max'
 
-
     # ********************************
     # * SETTINGS FOR ACTION REQUESTS *
     # ********************************
 
     # (maximum) number of action requests sent per response
     NUMBER_OF_ACTION_REQUESTS: int = 5
-
 
     # ************************
     # * SETTINGS FOR DISPLAY *

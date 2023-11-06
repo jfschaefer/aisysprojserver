@@ -1,7 +1,6 @@
 import json
 import logging
 from pathlib import Path
-import random
 from time import sleep
 
 from aisysprojserver_clienttools.admin import AdminClient
@@ -36,7 +35,7 @@ def play(state):
     action = max((state % 4), 1)
     return action
 
+
 logging.basicConfig(level=logging.INFO)
 
 run('/tmp/aisystestconfig.json', play)
-

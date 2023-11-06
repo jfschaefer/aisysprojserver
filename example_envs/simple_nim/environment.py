@@ -1,32 +1,18 @@
-import dataclasses
 import random
 from pathlib import Path
 from typing import Any
 
 import jinja2
-from dataclasses_json import dataclass_json
 
-from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionResult, EnvInfo, ActionRequest
+from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionResult, ActionRequest
 from aisysprojserver.env_mixins import SimpleViewEnv, SimpleViewAgent
 from aisysprojserver.env_settings import EnvSettings
 from aisysprojserver.website import AISYSPROJ_TEMPLATES, TEMPLATE_STANDARD_KWARGS
 
 
-@dataclass_json
-@dataclasses.dataclass(frozen=True)
-class Config:
-    strong: bool = True
-    random_start: bool = False
-
-
 class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
     settings = EnvSettings()
     settings.MIN_RUNS_FOR_FULLY_EVALUATED = 10
-
-    def __init__(self, env_info: EnvInfo, config_json: Any):
-        GenericEnvironment.__init__(self, env_info, config_json)
-
-        self.config: Config = Config.schema().load(config_json, many=False)
 
     def act(self, action: Any, run_data: RunData) -> ActionResult:
         remaining = run_data.state['remaining']
@@ -35,13 +21,13 @@ class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
         try:
             move = int(action)
         except ValueError:
-            return ActionResult(message=f'Invalid action: {action!r}')
+            return ActionResult.error(f'Invalid action: {action!r}')
         except TypeError:
-            return ActionResult(message=f'Invalid action (expected a string, got {action!r})')
+            return ActionResult.error(f'Invalid action (expected a string, got {action!r})')
         if move > 3 or move < 1:
-            return ActionResult(message=f'You have to remove 1, 2, or 3 objects')
+            return ActionResult.error('You have to remove 1, 2, or 3 objects')
         if move > remaining:
-            return ActionResult(message=f'You tried to take {move} objects, but only {remaining} are remaining')
+            return ActionResult.error(f'You tried to take {move} objects, but only {remaining} are remaining')
 
         updated_state = remaining - move
         if updated_state == 0:  # victory
@@ -49,7 +35,7 @@ class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
                                 message='Congratulations, you won!', outcome=1)
 
         # environment/opponent makes an action
-        if self.config.strong:
+        if self.config_json['strong']:
             counter_action = updated_state % 4
             if not counter_action:  # cannot win -> random move
                 counter_action = random.randint(1, 3)
@@ -63,7 +49,7 @@ class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
                             outcome=None if remaining else 0)
 
     def new_run(self):
-        if self.config.random_start:
+        if self.config_json['random_start']:
             number = random.randint(9, 11)  # agent can always win
         else:
             number = 10

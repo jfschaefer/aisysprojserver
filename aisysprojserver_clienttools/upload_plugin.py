@@ -23,7 +23,11 @@ def upload_plugin(client: AdminClient, package: Path | str):
             logger.debug(f'Including {rel_path}')
             zf.write(file_path, arcname=rel_path)
 
-    encoded_pwd = base64.encodebytes(client.pwd.encode()).decode().replace('\n', '')  # no linebreaks in header
+    encoded_pwd = (
+        base64.
+        encodebytes(client.pwd.encode())
+        .decode()
+        .replace('\n', '')   # no linebreaks in header
+    )
     return client.send_request('/uploadplugin', method='PUT', data=data.getvalue(),
                                headers={'Authorization': f'Basic {encoded_pwd}'})
-

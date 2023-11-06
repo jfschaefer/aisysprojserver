@@ -11,10 +11,10 @@ from aisysprojserver.env_settings import EnvSettings
 
 @dataclasses.dataclass(frozen=True)
 class ActionResult:
-    new_state: Optional[Any] = None          # None means that the action was not accepted (e.g. invalid move)
-    message: Optional[str] = None            # A message for the agent (considered an error message if new_state is None)
-    action_extra_info: Any = None            # some sort of extra information related to the action (for action history)
-    outcome: Optional[Any] = None            # run is over if not None
+    new_state: Optional[Any] = None         # None means that the action was not accepted (e.g. invalid move)
+    message: Optional[str] = None           # A message for the agent (considered an error message if new_state is None)
+    action_extra_info: Any = None           # some sort of extra information related to the action (for action history)
+    outcome: Optional[Any] = None           # run is over if not None
 
     @classmethod
     def error(cls, message: str) -> ActionResult:
@@ -79,7 +79,8 @@ class GenericEnvironment(abc.ABC):
         self.env_info: EnvInfo = env_info
         self.config_json = config_json
 
-    def act(self, action: Any, run_data: RunData) -> ActionResult:  # invalid actions should be indicated in the return value (not via exceptions)
+    def act(self, action: Any, run_data: RunData) -> ActionResult:
+        # invalid actions should be indicated in the return value (not via exceptions)
         raise NotImplementedError()
 
     def new_run(self) -> Any:       # returns new state
@@ -89,10 +90,10 @@ class GenericEnvironment(abc.ABC):
         raise NotImplementedError()
 
     def view_run(self, run_data: RunData) -> str:
-        raise NotFound(f'Viewing runs is not supported for this environment')
+        raise NotFound('Viewing runs is not supported for this environment')
 
     def view_agent(self, agent_data: AgentDataSummary) -> str:       # idea: mixins for standard implementation
-        raise NotFound(f'Viewing agents is not supported for this environment')
+        raise NotFound('Viewing agents is not supported for this environment')
 
     def view_env(self, env_data: EnvData) -> str:
         raise NotImplementedError()

@@ -64,7 +64,7 @@ class PluginManager:
     @classmethod
     def reload_all_plugins(cls):
         if cls.plugins:
-            logger.info(f'Unloading already loaded plugins')
+            logger.info('Unloading already loaded plugins')
             for plugin in cls.plugins.values():
                 plugin.unimport()
             cls.plugins = {}
@@ -73,7 +73,7 @@ class PluginManager:
             if not directory.is_dir():
                 logging.warning(f'{directory} does not seem to be a plugin directory')
             cls.plugins[directory.name] = Plugin(directory.name)
-        logger.info(f'Successfully loaded the following plugins: ' + ', '.join(cls.plugins.keys()))
+        logger.info('Successfully loaded the following plugins: ' + ', '.join(cls.plugins.keys()))
 
     @classmethod
     def load_from_zipfile(cls, zf: ZipFile) -> str:
