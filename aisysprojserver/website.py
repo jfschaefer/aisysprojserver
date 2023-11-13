@@ -8,6 +8,7 @@ from werkzeug.exceptions import NotFound, BadRequest
 
 from aisysprojserver import __version__
 from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
+from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.agent_data import AgentData
 from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
@@ -62,6 +63,9 @@ def agent_page(env: str, agent: str):
         raise NotFound()
     agent_data = AgentData(f'{env}/{agent}')
     if not agent_data.exists():
+        if AgentAccount(env, agent).exists():
+            return _jinja_env.get_template('agent_without_runs.html').render(agent_identifier=agent,
+                                                                             **TEMPLATE_STANDARD_KWARGS)
         raise NotFound()
     return active_env.get_env_instance().view_agent(agent_data.to_agent_data_summary())
 

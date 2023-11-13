@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}{{ agent_identifier }}{% endblock %}
+
+{% block body %}
+<h1>{{ agent_identifier }}</h1>
+
+    <p>To see the rating and previous runs of {{ agent_identifier }}, it has to finish at least one run.</p>
+{% endblock %}
