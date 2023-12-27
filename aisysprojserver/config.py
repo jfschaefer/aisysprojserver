@@ -45,7 +45,7 @@ class TestConfig(Config):
 
 
 class UwsgiConfig(Config):
-    ADMIN_AUTH = 'sha256:ac6e9d130abfb10f002b05a85a00c2193ce065d4a64b5ee7fb98c70378e2d290'
+    ADMIN_AUTH = 'sha256:017617f402eea6ef59d2a3aad435005bf0196f1d832b4e78feb43368060f9505'
     CONFIG_NAME = 'uwsgi'
     PERSISTENT: Path = Path('/app/persistent')
     PLUGINS_DIR: Path = Path('/app/persistent/plugins')
