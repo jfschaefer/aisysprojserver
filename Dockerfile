@@ -5,6 +5,7 @@ COPY ./requirements.txt /app
 COPY ./optional-requirements.txt /app
 RUN pip install -r ./requirements.txt
 RUN pip install -r ./optional-requirements.txt
+RUN echo 42
 COPY ./uwsgi.ini /app
 COPY ./aisysprojserver /app/aisysprojserver
 VOLUME /app/persistent
