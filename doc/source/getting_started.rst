@@ -56,6 +56,7 @@ You can use the client tools to upload a plugin:
 >>> from aisysprojserver_clienttools.admin import AdminClient
 >>> from aisysprojserver_clienttools.upload_plugin import upload_plugin
 >>> # the password in the test configuration is 'test-admin-password'
+>>> # (in some cases, you may have to use 127.0.0.1 instead of localhost)
 >>> ac = AdminClient('http://localhost:5000', 'test-admin-password')
 >>> plugin_path = 'example_envs/simple_nim/'   # example plugin in repository
 >>> upload_plugin(ac, p)
