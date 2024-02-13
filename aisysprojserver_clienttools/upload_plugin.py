@@ -18,7 +18,7 @@ def upload_plugin(client: AdminClient, package: Path | str):
     with ZipFile(data, 'w') as zf:
         for file_path in package.rglob("*"):
             rel_path = file_path.relative_to(package.parent)
-            if '__pycache__' in str(rel_path):
+            if '__pycache__' in str(rel_path) or '.mypy_cache' in str(rel_path):
                 continue
             logger.debug(f'Including {rel_path}')
             zf.write(file_path, arcname=rel_path)
