@@ -54,23 +54,26 @@ but depending on some technicalities, a restart of the server might be necessary
 You can use the client tools to upload a plugin:
 
 >>> from aisysprojserver_clienttools.admin import AdminClient
->>> from aisysprojserver_clienttools.upload_plugin import upload_plugin
 >>> # the password in the test configuration is 'test-admin-password'
 >>> # (in some cases, you may have to use 127.0.0.1 instead of localhost)
 >>> ac = AdminClient('http://localhost:5000', 'test-admin-password')
 >>> plugin_path = 'example_envs/simple_nim/'   # example plugin in repository
->>> upload_plugin(ac, p)
+>>> ac.upload_plugin(plugin_path)
 
 Now, the ``simple_nim`` package should be available on the server
 (of course you can also install the package conventionally using pip).
-Next, we can make a new environment that uses the plugin and create a new agent for it:
+Next, we can make a new environment that uses the plugin:
 
 >>> ac.make_env(env_class='simple_nim.environment:Environment',
-...             identifer='test-nim',
+...             identifier='test-nim',
 ...             display_name='Test Environment (Nim)',
-...             display_group='Test Environments',
-...             config={},
+...             config={'strong': True, 'random_start': True},
 ...             overwrite=False)
+
+You should be able to see the new environment in the web interface at
+``http://localhost:5000/env/test-nim``.
+Next, we will make a new user (agent) and create a configuration file for it:
+
 >>> _, content = ac.new_user(env='test-nim', user='test-user')
 >>> # store the agent configuration in a file
 >>> import json
@@ -88,3 +91,33 @@ Now, we can implement a simple agent that plays the game and run it.
 
 This will keep running until you interrupt it (e.g. with Ctrl-C).
 Check the web interface to see the results.
+
+
+Groups
+------
+
+So far, we have used a special URL to see the environment.
+To make the page navigable, the server supports groups.
+A group consists of:
+
+* an identifier
+* a title
+* a description
+* a list of links to environments (can be empty)
+* a list of links to other groups (can be empty)
+
+Let us make one and add the environment to it:
+
+>>> ac.make_group(
+...     identifier='nim-group',
+...     title='Nim Group',
+...     description='A group with all the Nim environments',
+... )
+>>> ac.add_env_to_group('nim-group', 'test-nim')
+
+We can now see the group at ``http://localhost:5000/group/nim-group``.
+The front page (``http://localhost:5000/``) will also show the group
+``main``, which is automatically created.
+Let us add the new group to the main group:
+
+>>> ac.add_subgroup_to_group('main', 'nim-group')

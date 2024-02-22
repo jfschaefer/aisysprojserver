@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block body %}
+    <h1>{{ title }}</h1>
+    <p>{{ description|safe }}</p>
+
+    {% if envs %}
+        <h2>Environments</h2>
+        <ul>
+            {% for url, display_name in envs %}
+                <li><a href="{{ url }}">{{ display_name }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% if subgroups %}
+        <h2>Groups</h2>
+        <ul>
+            {% for url, display_name in subgroups %}
+                <li><a href="{{ url }}">{{ display_name }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% if (not envs) and (not subgroups) %}
+        <p>No environments or subgroups found.</p>
+    {% endif %}
+    <p style="color:gray">AISysProj server version {{ version }}</p>
+{% endblock %}

@@ -1,6 +1,7 @@
 import subprocess
 
 from flask import Blueprint, g, jsonify
+from sqlalchemy import text
 from werkzeug.exceptions import NotFound
 
 from aisysprojserver import config, models
@@ -65,5 +66,5 @@ def removenonrecentruns():
     for agent_data in get_all_agentdata():
         agent_data.delete_nonrecent_runs()
     with models.Session() as session:
-        session.execute('VACUUM')
+        session.execute(text('VACUUM'))
     return jsonify({'result': 'done'})

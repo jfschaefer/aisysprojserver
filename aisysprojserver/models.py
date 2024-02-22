@@ -1,6 +1,13 @@
+""" Database models for the AI system project server
+
+Note that this has grown organically without any expertise in database design,
+using only the most basic features.
+It is not a good example of how to structure a database model.
+"""
+
 from typing import Generic, TypeVar, Optional, Callable, Any
 
-from sqlalchemy import Column, String, create_engine, Integer, Float, Boolean, Text
+from sqlalchemy import Column, String, create_engine, Integer, Float, Boolean, Text, PrimaryKeyConstraint
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -60,6 +67,8 @@ class ActiveEnvironmentModel(Base):
 
     env_class = Column(String)
     displayname = Column(String)
+
+    # displaygroup is not used anymore; for now it's kept for compatibility
     displaygroup = Column(String)  # Will be grouped on the front page under this header
     config = Column(String)
 
@@ -74,6 +83,26 @@ class KeyValModel(Base):
 
     key = Column(String, index=True, primary_key=True)
     val = Column(Text)
+
+
+class GroupModel(Base):
+    __tablename__ = 'groups'
+
+    identifier = Column(String, primary_key=True, index=True)
+    displayname = Column(String)
+    description_html = Column(Text)
+
+
+class GroupEntryModel(Base):
+    __tablename__ = 'group_entries'
+
+    group = Column(String, index=True)
+    entry_type = Column(Integer)       # 0: entry is group, 1: entry is environment
+    entry = Column(String, index=True)
+
+    __table_args__ = (
+         PrimaryKeyConstraint('group', 'entry_type', 'entry', name='group_entry_pk'),
+    )
 
 
 class KeyValAccess:

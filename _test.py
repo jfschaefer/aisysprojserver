@@ -5,21 +5,20 @@ from time import sleep
 
 from aisysprojserver_clienttools.admin import AdminClient
 from aisysprojserver_clienttools.client_simple import run
-from aisysprojserver_clienttools.upload_plugin import upload_plugin
 
 ac = AdminClient('http://localhost:5000', 'test-admin-password')
 
 config = {'strong': False, 'random_start': True}
 
-upload_plugin(ac, Path('example_envs/simple_nim'))
+ac.upload_plugin(Path('example_envs/simple_nim'))
 ac.make_env(env_class='simple_nim.environment:Environment', identifier='env1',
-            display_name='Nim 1', display_group='Nim 2022', config=config)
+            display_name='Nim 1', config=config)
 ac.make_env(env_class='simple_nim.environment:Environment', identifier='env2',
-            display_name='Nim 2', display_group='Nim 2022', config=config)
+            display_name='Nim 2', config=config)
 ac.make_env(env_class='simple_nim.environment:Environment', identifier='env3',
-            display_name='Nim 1', display_group='Nim 2023', config=config)
+            display_name='Nim 1', config=config)
 ac.make_env(env_class='simple_nim.environment:Environment', identifier='env4',
-            display_name='Nim 15', display_group='Nim 2023', config=config)
+            display_name='Nim 15', config=config)
 
 code, content = ac.new_user('env1', 'TestUserEnv1')
 if code == 200:

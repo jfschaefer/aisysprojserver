@@ -56,11 +56,11 @@ class ServerTestCase(unittest.TestCase):
 
         package = Path(__file__).parent.parent / 'example_envs' / 'simple_nim'
         assert package.is_dir(), f'{package} does not exist'
-        code, content = upload_plugin(cls.admin, package)
+        code, content = cls.admin.upload_plugin(package)
         assert code == 200, 'Failed to upload plugin. Content: ' + str(content)
 
         code, _ = cls.admin.make_env('simple_nim.environment:Environment', 'test-nim',
-                                     'Test Environment (Nim)', display_group='Test Environments',
+                                     'Test Environment (Nim)',
                                      config={'strong': True, 'random_start': False}, overwrite=False)
         assert code == 200, 'Failed to create test-nim'
         code, cls._testuser_content = cls.admin.new_user('test-nim', 'testuser')

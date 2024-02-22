@@ -8,8 +8,9 @@ from flask import Flask, g, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
 from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act, \
-    website, admin
+    website, admin, group_management
 from aisysprojserver.config import Config, TestConfig
+from aisysprojserver.group import Group
 from aisysprojserver.plugins import PluginManager
 
 
@@ -71,6 +72,18 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
 
     models.setup(configuration)
 
+    # data initialization - there must always be a main group
+    if not Group('main').exists():
+        Group.new(
+            'main',
+            'AISysProj Server',
+            'Welcome to the AISysProj Server! '
+            'It has different environments for evaluating agents '
+            'in the context of the AI Systems project and the AI lecture. '
+            'You can only use it if you have valid credentials, which are usually supplied by the course organizers. '
+            'It is not meant for public use.'
+        )
+
     app = Flask(__name__)
     configuration.register(app)
     app.config.from_object(configuration)
@@ -81,6 +94,7 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
     app.register_blueprint(act.bp)
     app.register_blueprint(website.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(group_management.bp)
     website.cache.init_app(app)
 
     return app

@@ -1,4 +1,3 @@
-from collections import defaultdict
 from pathlib import Path
 
 import jinja2
@@ -12,6 +11,7 @@ from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.agent_data import AgentData
 from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
+from aisysprojserver.group import Group
 
 AISYSPROJ_TEMPLATES: Path = Path(__file__).parent / 'templates'
 TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for, 'format': format}
@@ -28,22 +28,29 @@ _jinja_env = jinja2.Environment(
 @bp.route('/')
 @cache.cached(timeout=10)
 def frontpage():
-    envs_list: list[ActiveEnvironment] = get_all_active_envs()
-    envs: dict[str, list[ActiveEnvironment]] = defaultdict(list)
-    for env in envs_list:
-        envs[env.display_group].append(env)
-    for v in envs.values():
-        v.sort(key=lambda ae: ae.display_name)
+    return group_page('main')
 
-    urls: dict = {
-        env.identifier: url_for('website.env_page', env=env.identifier)
-        for env in envs_list
-    }
 
-    env_groups: list[str] = list(sorted(envs.keys(), reverse=True))
+@bp.route('/group/<group>')
+@cache.cached(timeout=10)
+def group_page(group: str):
+    group = Group(group)
+    if not group.exists():
+        raise NotFound()
+    envs_list: list[ActiveEnvironment] = group.get_envs()
+    envs_list.sort(key=lambda ae: ae.identifier)
+    subgroup_list: list[Group] = group.get_subgroups()
+    subgroup_list.sort(key=lambda g: g.identifier, reverse=True)
 
-    return _jinja_env.get_template('frontpage.html').render(envs=envs, urls=urls, env_groups=env_groups,
-                                                            version=__version__, **TEMPLATE_STANDARD_KWARGS)
+    return _jinja_env.get_template('group_page.html').render(
+        title=group.display_name,
+        description=group.description,
+        # TODO: why do we need *.identifier[0] instead of just *.identifier?
+        envs=[(url_for('website.env_page', env=env.identifier[0]), env.display_name) for env in envs_list],
+        subgroups=[(url_for('website.group_page', group=g.identifier[0]), g.display_name) for g in subgroup_list],
+        version=__version__,
+        **TEMPLATE_STANDARD_KWARGS
+    )
 
 
 @bp.route('/env/<env>')

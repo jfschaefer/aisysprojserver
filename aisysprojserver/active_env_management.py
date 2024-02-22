@@ -19,9 +19,9 @@ bp = Blueprint('active_env_management', __name__)
 class MakeEnvRequest:
     env_class: str
     display_name: str
-    display_group: str
     # TODO: Should be any, but that does not work because of https://github.com/lidatong/dataclasses-json/issues/292
     config: dict
+    display_group: str = ''    # Not used anymore, but kept for compatibility
     overwrite: bool = False
 
 
