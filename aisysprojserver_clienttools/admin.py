@@ -62,6 +62,10 @@ class AdminClient:
         data['admin-pwd'] = self.pwd
         return self.send_request(f'groupmanagement/make/{identifier}', method='PUT', json=data)
 
+    def delete_group(self, group: str) -> tuple[int, Any]:
+        data = {'admin-pwd': self.pwd}
+        return self.send_request(f'groupmanagement/delete/{group}', method='DELETE', json=data)
+
     def add_subgroup_to_group(self, group: str, subgroup: str) -> tuple[int, Any]:
         data = {'admin-pwd': self.pwd}
         return self.send_request(f'groupmanagement/addsubgroup/{group}/{subgroup}', method='PUT', json=data)

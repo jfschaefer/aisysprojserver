@@ -44,6 +44,22 @@ class Group(models.ModelMixin[models.GroupModel]):
             )
             return [ActiveEnvironment(identifier) for identifier in identifiers]
 
+    def delete(self):
+        with models.Session() as session:
+            if self.identifier != 'main':   # main group cannot be deleted
+                session.delete(self._require_model())
+
+            session.query(models.GroupEntryModel).filter(
+                models.GroupEntryModel.group == self.identifier
+            ).delete()
+
+            session.query(models.GroupEntryModel).filter(
+                models.GroupEntryModel.entry == self.identifier,
+                models.GroupEntryModel.entry_type == 0
+            ).delete()
+
+            session.commit()
+
     def get_subgroups(self) -> list[Group]:
         with models.Session() as session:
             identifiers = session.execute(

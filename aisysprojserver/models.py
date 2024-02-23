@@ -101,7 +101,7 @@ class GroupEntryModel(Base):
     entry = Column(String, index=True)
 
     __table_args__ = (
-         PrimaryKeyConstraint('group', 'entry_type', 'entry', name='group_entry_pk'),
+        PrimaryKeyConstraint('group', 'entry_type', 'entry', name='group_entry_pk'),
     )
 
 

@@ -8,7 +8,6 @@ from flask.testing import FlaskClient
 from aisysprojserver import config, models
 from aisysprojserver.app import create_app
 from aisysprojserver_clienttools.admin import AdminClient
-from aisysprojserver_clienttools.upload_plugin import upload_plugin
 
 
 class TestAdmin(AdminClient):

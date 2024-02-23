@@ -47,6 +47,17 @@ def makegroup(group: str):
     return jsonify({'success': True})
 
 
+@bp.route('/groupmanagement/delete/<group>', methods=['DELETE'])
+def deletegroup(group: str):
+    g.isJSON = True
+    require_admin_auth()
+    group_ = Group(group)
+    if not group_.exists():
+        raise BadRequest(f'No such group {group_.identifier}')
+    group_.delete()
+    return jsonify({'success': True})
+
+
 @bp.route('/groupmanagement/addsubgroup/<group>/<subgroup>', methods=['PUT'])
 def addsubgroup(group: str, subgroup: str):
     g.isJSON = True

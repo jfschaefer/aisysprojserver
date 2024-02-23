@@ -6,7 +6,7 @@ from flask_caching import Cache
 from werkzeug.exceptions import NotFound, BadRequest
 
 from aisysprojserver import __version__
-from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
+from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.agent_data import AgentData
 from aisysprojserver.plugins import PluginManager
