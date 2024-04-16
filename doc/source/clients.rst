@@ -21,7 +21,7 @@ For the first request, the client has to send an empty list of actions to get ac
 from the server.
 
 If you want to implement the client protocal, you might use the
-`Simple Python client <https://github.com/jfschaefer/aisysprojserver/blob/main/aisysprojserver_clienttools/client_simple.py>`
+`Simple Python client <https://github.com/jfschaefer/aisysprojserver/blob/main/aisysprojserver_clienttools/client_simple.py>`_
 implementation for reference.
 
 Example interaction
