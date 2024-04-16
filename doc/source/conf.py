@@ -13,11 +13,11 @@ extensions = ['sphinx.ext.autodoc', 'sphinxcontrib.apidoc', 'sphinx.ext.todo']
 
 apidoc_module_dir = str(Path(__file__).parent.parent.parent)
 apidoc_output_dir = 'apidocs'
+apidoc_excluded_paths = ['aisysprojserver/uwsgi_main.py']
 
 todo_include_todos = True
 
 templates_path = ['_templates']
-exclude_patterns = []
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']

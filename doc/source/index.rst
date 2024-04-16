@@ -10,6 +10,7 @@ Content
    introduction
    terminology
    getting_started
+   clients
    new_environment
 
 
