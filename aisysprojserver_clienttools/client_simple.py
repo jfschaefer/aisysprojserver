@@ -17,7 +17,7 @@ def get_action(percept):
     raise NotImplementedError()
 
 
-def run(config_file, action_function, single_request=False):
+def run(config_file, action_function, parallel_runs=True):
     logger = logging.getLogger(__name__)
 
     with open(config_file, 'r') as fp:
@@ -31,7 +31,7 @@ def run(config_file, action_function, single_request=False):
             'agent': config['agent'],
             'pwd': config['pwd'],
             'actions': actions,
-            'single_request': single_request,
+            'single_request': not parallel_runs,
         })
         if response.status_code == 200:
             response_json = response.json()
