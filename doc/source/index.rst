@@ -12,6 +12,7 @@ Content
    getting_started
    clients
    new_environment
+   contribute
 
 
 API reference
