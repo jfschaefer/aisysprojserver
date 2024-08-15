@@ -3,7 +3,7 @@ Introduction
 
 The AISysProj server is used in the AI Systems Project at FAU.
 It is currently hosted at https://aisysproj.kwarc.info.
-If you are interested in using it for your own project, to reach out.
+If you are interested in using it for your own project, you are invited to reach out.
 
 The main goal of the server is to allow students to evaluate their solution to a problem.
 Imagine, their task is to implement an algorithm for playing chess.

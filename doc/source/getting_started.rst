@@ -40,6 +40,20 @@ You should be able to see the server running at http://localhost:5000/.
    flask has good support for configuration files and we should start using it.
 
 
+Using docker
+~~~~~~~~~~~~
+
+There is a docker image `jfschaefer/gs <https://hub.docker.com/r/jfschaefer/gs>`_ for the server.
+After installing docker, you can run it with:
+
+.. code-block:: bash
+
+    $ sudo docker run -v /tmp/persistent:/app/persistent -p 80:80 jfschaefer/gs
+
+This will run the server on port 80.
+The persistent data (e.g. the database) is stored in the directory ``/tmp/persistent``, but you can change that.
+
+
 Uploading a plugin, making an environment and an agent, and running it
 ----------------------------------------------------------------------
 
