@@ -1,21 +1,22 @@
 import dataclasses
-from typing import Any
 import re
+from typing import Any
 
 from dataclasses_json import dataclass_json, Undefined
-from flask import Blueprint, g, request, jsonify
+from flask import g, request, jsonify
 from sqlalchemy import select
 from werkzeug.exceptions import BadRequest
 
-from aisysprojserver import models
+from aisysprojserver import models, telemetry
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.agent_data import AgentData
 from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionHistoryEntry
 from aisysprojserver.json_util import json_load, json_dump
 from aisysprojserver.models import AgentDataModel, RunModel, KeyValAccess
+from aisysprojserver.telemetry import MonitoredBlueprint
 
-bp = Blueprint('act', __name__)
+bp = MonitoredBlueprint('act', __name__)
 
 _run_id_regex = re.compile('^(?P<runid>[0-9]+)#(?P<actionno>[0-9]+)$')
 
@@ -210,7 +211,8 @@ class ActManager:
                 return response
 
             while len(runs) < max_requests:
-                state = self.env.new_run()
+                with telemetry.measure_run_creation_duration(self.active_env.env_class_refstr):
+                    state = self.env.new_run()
                 new_run = RunModel(
                     environment=self.env_id,
                     agent=self.account.identifier,
@@ -240,7 +242,11 @@ def act(env_id: str):
     actor = ActManager(env_id, content)
 
     actions = content['actions'] if 'actions' in content else []
+
+    telemetry.report_action(env_id, len(actions))
+
     for action in actions:
-        actor.process_action(action)
+        with telemetry.measure_action_processing(actor.active_env.env_class_refstr):
+            actor.process_action(action)
 
     return jsonify(actor.get_act_response())

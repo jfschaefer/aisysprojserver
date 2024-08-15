@@ -51,6 +51,10 @@ class ActiveEnvironment(models.ModelMixin[models.ActiveEnvironmentModel]):
         return self._require_model().displaygroup
 
     @property
+    def env_class_refstr(self) -> str:
+        return self._require_model().env_class
+
+    @property
     def recent_runs_key(self) -> str:
         return self.identifier + '#recentruns'
 

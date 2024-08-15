@@ -1,13 +1,14 @@
 import re
 
-from flask import Blueprint, request, jsonify, g
+from flask import request, jsonify, g
 from werkzeug.exceptions import BadRequest
 
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.authentication import require_admin_auth
+from aisysprojserver.telemetry import MonitoredBlueprint
 
-bp = Blueprint('agent_account_management', __name__)
+bp = MonitoredBlueprint('agent_account_management', __name__)
 
 
 @bp.route('/makeagent/<env>/<agent>', methods=['POST'])

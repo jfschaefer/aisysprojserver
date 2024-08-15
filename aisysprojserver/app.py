@@ -8,7 +8,7 @@ from flask import Flask, g, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
 from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act, \
-    website, admin, group_management
+    website, admin, group_management, telemetry
 from aisysprojserver.config import Config, TestConfig
 from aisysprojserver.group import Group
 from aisysprojserver.plugins import PluginManager
@@ -71,6 +71,7 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
         PluginManager.reload_all_plugins()
 
     models.setup(configuration)
+    telemetry.setup(configuration)
 
     # data initialization - there must always be a main group
     if not Group('main').exists():
@@ -85,6 +86,7 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
         )
 
     app = Flask(__name__)
+
     configuration.register(app)
     app.config.from_object(configuration)
     app.register_error_handler(Exception, exception_handler)

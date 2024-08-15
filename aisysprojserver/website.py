@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import jinja2
-from flask import Blueprint, url_for
+from flask import url_for
 from flask_caching import Cache
 from werkzeug.exceptions import NotFound, BadRequest
 
@@ -9,15 +9,16 @@ from aisysprojserver import __version__
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.agent_data import AgentData
+from aisysprojserver.group import Group
 from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
-from aisysprojserver.group import Group
+from aisysprojserver.telemetry import MonitoredBlueprint
 
 AISYSPROJ_TEMPLATES: Path = Path(__file__).parent / 'templates'
 TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for, 'format': format}
 
 cache = Cache()
-bp = Blueprint('website', __name__)
+bp = MonitoredBlueprint('website', __name__)
 
 _jinja_env = jinja2.Environment(
     loader=jinja2.FileSystemLoader(AISYSPROJ_TEMPLATES),

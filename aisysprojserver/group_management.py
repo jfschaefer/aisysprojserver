@@ -2,15 +2,16 @@ import dataclasses
 import re
 
 from dataclasses_json import dataclass_json, Undefined
-from flask import Blueprint, g, request, jsonify
+from flask import g, request, jsonify
 from marshmallow import ValidationError
 from werkzeug.exceptions import BadRequest
 
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.authentication import require_admin_auth
 from aisysprojserver.group import Group
+from aisysprojserver.telemetry import MonitoredBlueprint
 
-bp = Blueprint('group_management', __name__)
+bp = MonitoredBlueprint('group_management', __name__)
 
 
 @dataclass_json(undefined=Undefined.EXCLUDE)

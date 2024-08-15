@@ -1,6 +1,6 @@
 import subprocess
 
-from flask import Blueprint, g, jsonify
+from flask import g, jsonify, request
 from sqlalchemy import text
 from werkzeug.exceptions import NotFound
 
@@ -8,11 +8,12 @@ from aisysprojserver import config, models
 from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
 from aisysprojserver.agent_data import get_all_agentdata
 from aisysprojserver.authentication import require_admin_auth
+from aisysprojserver.telemetry import MonitoredBlueprint
 from aisysprojserver.website import cache
 
 ERROR_BUFFER: list[str] = []
 
-bp = Blueprint('admin', __name__)
+bp = MonitoredBlueprint('admin', __name__)
 
 
 @bp.route('/diskusage')
@@ -63,8 +64,10 @@ def results():
 def removenonrecentruns():
     g.isJSON = True
     require_admin_auth()
-    for agent_data in get_all_agentdata():
-        agent_data.delete_nonrecent_runs()
+    content = request.get_json()
+    if not (content and content['just-vacuum']):
+        for agent_data in get_all_agentdata():
+            agent_data.delete_nonrecent_runs()
     with models.Session() as session:
         session.execute(text('VACUUM'))
     return jsonify({'result': 'done'})

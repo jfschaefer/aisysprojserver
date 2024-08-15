@@ -39,3 +39,7 @@ class Run(models.ModelMixin[models.RunModel]):
 
     def env_str(self) -> str:
         return self._require_model().environment
+
+
+if __name__ == '__main__':
+    raise Exception('This module is not the entry point for the server - use app.py or uwsgi_main.py instead')

@@ -57,7 +57,10 @@ def _handle_success_response(response) -> Optional[dict[str, Json]]:
 def send_request(config: AgentConfig, actions: dict[str, Json], single_request: bool = False) -> dict[str, Json]:
     while True:  # retry until success
         logger.info(f'Sending request with {len(actions) or "no"} actions: {actions}')
-        response = requests_lib.put(f'{config["url"]}/act/{config["env"]}', json={
+        base_url = config['url']
+        if not base_url.endswith('/'):
+            base_url += '/'
+        response = requests_lib.put(f'{base_url}act/{config["env"]}', json={
             'agent': config['agent'],
             'pwd': config['pwd'],
             'actions': [
@@ -95,7 +98,7 @@ class RequestInfo:
         )
 
 
-class RunCounter:
+class _RunTracker:
     def __init__(self):
         self.old_runs: set[int] = set()
         self.old_runs_finalized: bool = False
@@ -145,7 +148,7 @@ class RunCounter:
 
 class RequestProcessor(abc.ABC):
     @abc.abstractmethod
-    def process_requests(self, requests: list[tuple[Json, RequestInfo]], counter: RunCounter) -> dict[str, Json]:
+    def process_requests(self, requests: list[tuple[Json, RequestInfo]], counter: _RunTracker) -> dict[str, Json]:
         pass
 
     def close(self):
@@ -159,7 +162,7 @@ class SimpleRequestProcessor(RequestProcessor):
         if processes > 1:
             self.pool = multiprocessing.Pool(processes=processes)
 
-    def process_requests(self, requests: list[tuple[Json, RequestInfo]], counter: RunCounter) -> dict[str, Json]:
+    def process_requests(self, requests: list[tuple[Json, RequestInfo]], counter: _RunTracker) -> dict[str, Json]:
         if self.pool is None:
             return {
                 request_info.identifier: self.action_function(percept, request_info)
@@ -190,7 +193,7 @@ def run(
     agent_config = json.loads(Path(agent_config_file).read_text())
 
     request_processor = SimpleRequestProcessor(agent_function, processes=processes)
-    counter = RunCounter()
+    counter = _RunTracker()
 
     actions_to_send: dict[str, Json] = {}
 

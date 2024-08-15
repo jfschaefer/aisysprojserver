@@ -94,8 +94,10 @@ class AdminClient:
         assert code == 200
         return content
 
-    def remove_nonrecent_runs(self):
-        code, content = self.send_request('removenonrecentruns', method='GET', json={'admin-pwd': self.pwd})
+    def remove_nonrecent_runs(self, just_vacuum: bool = False):
+        code, content = self.send_request(
+            'removenonrecentruns', method='GET', json={'admin-pwd': self.pwd, 'just-vacuum': just_vacuum}
+        )
         assert code == 200
         return content
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 from flask import current_app, Flask
 
@@ -20,9 +21,10 @@ class Config:
     PERSISTENT: Path = Path('/tmp')
     PLUGINS_DIR: Path = Path('/tmp/plugins')  # directory for environment implementations etc.
 
-    # Logging
+    # Logging etc.
     MIN_LOG_LEVEL = logging.INFO
     LOG_FILE = '/tmp/aisysprojserver.log'
+    PROMETHEUS_PORT: Optional[9464] = 9464   # port on which Prometheus metrics are served (telemetry) - None to disable
 
     # Caching
     CACHE_TYPE = 'SimpleCache'

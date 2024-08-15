@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Optional
 from zipfile import ZipFile
 
-from flask import Blueprint, request, g, jsonify
+from flask import request, g, jsonify
 
 from aisysprojserver.authentication import require_admin_auth
+from aisysprojserver.telemetry import MonitoredBlueprint
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,7 +116,7 @@ class PluginManager:
         return getattr(m, attribute)
 
 
-bp = Blueprint('plugins', __name__)
+bp = MonitoredBlueprint('plugins', __name__)
 
 
 @bp.route('/uploadplugin', methods=['PUT'])

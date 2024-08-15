@@ -10,3 +10,8 @@ Flask-Caching
 Jinja2
 # orjson is technically optional, but it makes the server more efficient
 orjson
+
+# telemetry
+opentelemetry-exporter-prometheus
+opentelemetry-sdk
+# opentelemetry-instrumentation-flask
