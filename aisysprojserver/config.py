@@ -25,6 +25,7 @@ class Config:
     MIN_LOG_LEVEL = logging.INFO
     LOG_FILE = '/tmp/aisysprojserver.log'
     PROMETHEUS_PORT: Optional[9464] = 9464   # port on which Prometheus metrics are served (telemetry) - None to disable
+    OTLP_ENDPOINT: Optional[str] = None  # OpenTelemetry collector endpoint - None to disable
 
     # Caching
     CACHE_TYPE = 'SimpleCache'
@@ -53,3 +54,6 @@ class UwsgiConfig(Config):
     PLUGINS_DIR: Path = Path('/app/persistent/plugins')
     DATABASE_URI = 'sqlite:////app/persistent/aisysprojserver.db'
     LOG_FILE = '/app/persistent/aisysprojserver.log'
+
+    OTLP_ENDPOINT = 'http://localhost:4318/v1/metrics'
+    PROMETHEUS_PORT = None   # multiple processes -> port conflict

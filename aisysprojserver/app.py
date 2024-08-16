@@ -9,7 +9,7 @@ from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
 from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act, \
     website, admin, group_management, telemetry
-from aisysprojserver.config import Config, TestConfig
+from aisysprojserver.config import Config, TestConfig, UwsgiConfig
 from aisysprojserver.group import Group
 from aisysprojserver.plugins import PluginManager
 
@@ -42,7 +42,7 @@ def exception_handler(exception):
 
     admin.ERROR_BUFFER.append(''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
     while len(admin.ERROR_BUFFER) > 50:
-        admin.ERROR_BUFFER.pop(0)   # not exactly efficient, I think, but easy and not a problem
+        admin.ERROR_BUFFER.pop(0)  # not exactly efficient, I think, but easy and not a problem
 
     if hasattr(g, 'isJSON') and g.isJSON:
         response = jsonify({'errorcode': 500, 'errorname': 'Internal Server Error',
@@ -71,7 +71,11 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
         PluginManager.reload_all_plugins()
 
     models.setup(configuration)
-    telemetry.setup(configuration)
+    if not isinstance(configuration, UwsgiConfig):
+        logging.info('Setting up telemetry')
+        # uwsgi's pre-forking causes problems - it's setup in uwsgi_main.py
+        # (see https://opentelemetry-python.readthedocs.io/en/latest/examples/fork-process-model/README.html)
+        telemetry.setup(configuration)
 
     # data initialization - there must always be a main group
     if not Group('main').exists():

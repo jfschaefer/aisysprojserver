@@ -1,4 +1,5 @@
 # TODO: this should be a bit more restrictive (but not fix the versions)
+psutil
 sqlalchemy
 Flask
 Werkzeug
@@ -15,3 +16,6 @@ orjson
 opentelemetry-exporter-prometheus
 opentelemetry-sdk
 # opentelemetry-instrumentation-flask
+opentelemetry-exporter-otlp-proto-http
+
+uwsgidecorators

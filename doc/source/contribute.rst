@@ -26,12 +26,11 @@ Before committing, please make sure that the following checks are successful:
 Releases
 ~~~~~~~~
 
-- Update the version number in `setup.py`
+- Update the version number in `pyproject.toml`
 - Update the version number in `aisysprojserver/__init__.py`
 - Make a new release on docker hub:
 
 .. code:: bash
-    sudo service start docker
     sudo docker build -t jfschaefer/gs:0.0.5 .
     sudo docker build -t jfschaefer/gs:latest .
     sudo docker push jfschaefer/gs:0.0.5

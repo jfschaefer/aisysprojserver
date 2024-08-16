@@ -4,11 +4,12 @@ from functools import cached_property, wraps
 from pathlib import Path
 from typing import Optional, Iterable
 
+import psutil
 from flask import Blueprint
 from opentelemetry import metrics
-from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.metrics import Meter, Histogram, Counter, Observation, CallbackOptions
 from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics._internal.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.metrics.view import ExplicitBucketHistogramAggregation, View
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
 from prometheus_client import start_http_server
@@ -106,6 +107,39 @@ def _setup_db_size_gauge(config: Config):
     )
 
 
+def _setup_system_metrics():
+    def get_cpu_usage(options: CallbackOptions) -> Iterable[Observation]:
+        # psutil.cpu_percent(X) is a blocking call (records CPU usage over X seconds)
+        yield Observation(psutil.cpu_percent(min(options.timeout_millis * 1000 / 2, 1.0)))
+
+    def get_rel_memory_usage(_options: CallbackOptions) -> Iterable[Observation]:
+        yield Observation(psutil.virtual_memory().percent)
+
+    def get_abs_memory_usage(_options: CallbackOptions) -> Iterable[Observation]:
+        yield Observation(psutil.virtual_memory().used / 1024 / 1024)
+
+    _instruments.meter.create_observable_gauge(
+        name='cpu_usage',
+        description='CPU usage',
+        unit='%',
+        callbacks=[get_cpu_usage]
+    )
+
+    _instruments.meter.create_observable_gauge(
+        name='rel_memory_usage',
+        description='Memory usage',
+        unit='%',
+        callbacks=[get_rel_memory_usage]
+    )
+
+    _instruments.meter.create_observable_gauge(
+        name='abs_memory_usage',
+        description='Memory usage',
+        unit='MiB',
+        callbacks=[get_abs_memory_usage]
+    )
+
+
 class MonitoredBlueprint(Blueprint):
     def route(self, rule, **options):
         def decorator(f):
@@ -135,10 +169,17 @@ def setup(config: Config):
         SERVICE_VERSION: __version__
     })
 
+    readers = []
+
+    if config.PROMETHEUS_PORT is not None:
+        from opentelemetry.exporter.prometheus import PrometheusMetricReader
+        readers.append(PrometheusMetricReader())
+    if config.OTLP_ENDPOINT is not None:
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+        readers.append(PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=config.OTLP_ENDPOINT)))
+
     provider = MeterProvider(
-        metric_readers=[
-            PrometheusMetricReader()
-        ],
+        metric_readers=readers,
         resource=resource,
         views=[View(
             instrument_name='*_duration',
@@ -152,3 +193,4 @@ def setup(config: Config):
     _instruments.set_meter(metrics.get_meter('aisysproj-meter'))
 
     _setup_db_size_gauge(config)
+    _setup_system_metrics()
