@@ -15,7 +15,11 @@ from aisysprojserver.run import Run
 from aisysprojserver.telemetry import MonitoredBlueprint
 
 AISYSPROJ_TEMPLATES: Path = Path(__file__).parent / 'templates'
-TEMPLATE_STANDARD_KWARGS: dict = {'url_for': url_for, 'format': format}
+TEMPLATE_STANDARD_KWARGS: dict = {
+    'url_for': url_for,
+    'format': format,
+    'SERVER_VERSION': __version__,
+}
 
 cache = Cache()
 bp = MonitoredBlueprint('website', __name__)
@@ -49,7 +53,6 @@ def group_page(group: str):
         # TODO: why do we need *.identifier[0] instead of just *.identifier?
         envs=[(url_for('website.env_page', env=env.identifier[0]), env.display_name) for env in envs_list],
         subgroups=[(url_for('website.group_page', group=g.identifier[0]), g.display_name) for g in subgroup_list],
-        version=__version__,
         **TEMPLATE_STANDARD_KWARGS
     )
 
@@ -97,5 +100,4 @@ def run_page(env: str, runid: str):
 def plugins_page():
     plugins = [(plugin.package_name, plugin.version) for plugin in PluginManager.plugins.values()]
     plugins.sort()
-    return _jinja_env.get_template('plugins_page.html').render(plugins=plugins, version=__version__,
-                                                               **TEMPLATE_STANDARD_KWARGS)
+    return _jinja_env.get_template('plugins_page.html').render(plugins=plugins, **TEMPLATE_STANDARD_KWARGS)

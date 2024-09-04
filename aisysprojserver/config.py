@@ -19,11 +19,18 @@ class Config:
     MAX_CONTENT_LENGTH: int = 1000000  # respond 413 otherwise
 
     PERSISTENT: Path = Path('/tmp')
-    PLUGINS_DIR: Path = Path('/tmp/plugins')  # directory for environment implementations etc.
+
+    @property
+    def PLUGINS_DIR(self) -> Path:
+        return self.PERSISTENT / 'plugins'
 
     # Logging etc.
     MIN_LOG_LEVEL = logging.INFO
-    LOG_FILE = '/tmp/aisysprojserver.log'
+
+    @property
+    def LOG_FILE(self) -> Path:
+        return self.PERSISTENT / 'aisysprojserver.log'
+
     PROMETHEUS_PORT: Optional[9464] = 9464   # port on which Prometheus metrics are served (telemetry) - None to disable
     OTLP_ENDPOINT: Optional[str] = None  # OpenTelemetry collector endpoint - None to disable
 
@@ -32,7 +39,9 @@ class Config:
     CACHE_DEFAULT_TIMEOUT = 5  # in seconds
 
     # database
-    DATABASE_URI = 'sqlite:////tmp/aisysprojserver.db'
+    @property
+    def DATABASE_URI(self) -> str:
+        return f'sqlite:///{self.PERSISTENT.absolute()}/aisysprojserver.db'
 
     # admin access
     # Run ``authentication.py`` to generate a password and a hash
@@ -51,9 +60,9 @@ class UwsgiConfig(Config):
     ADMIN_AUTH = 'sha256:017617f402eea6ef59d2a3aad435005bf0196f1d832b4e78feb43368060f9505'
     CONFIG_NAME = 'uwsgi'
     PERSISTENT: Path = Path('/app/persistent')
-    PLUGINS_DIR: Path = Path('/app/persistent/plugins')
-    DATABASE_URI = 'sqlite:////app/persistent/aisysprojserver.db'
-    LOG_FILE = '/app/persistent/aisysprojserver.log'
+    # PLUGINS_DIR: Path = Path('/app/persistent/plugins')
+    # DATABASE_URI = 'sqlite:////app/persistent/aisysprojserver.db'
+    # LOG_FILE = '/app/persistent/aisysprojserver.log'
 
     OTLP_ENDPOINT = 'http://localhost:4318/v1/metrics'
     PROMETHEUS_PORT = None   # multiple processes -> port conflict

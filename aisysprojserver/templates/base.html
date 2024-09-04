@@ -3,12 +3,27 @@
 <head>
     <meta charset="UTF-8"/>
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='simplecss/simple.min.css') }}"/>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='base.css') }}"/>
     {% block extrahead %}{% endblock %}
 </head>
 <body>
-{% block body %}{% endblock %}
-<script src="https://privacy.kwarc.info/legal.js"></script>
+    <header>
+        <nav>
+            <a href="/"><b>AISysProj server</b></a>
+            <a href="https://kwarc.info/courses/aisysproj/">About AISysProj</a>
+            <a href="https://kwarc.info/teaching/AISysProj/">Assignments</a>
+            <a href="https://aisysprojserver.readthedocs.io/en/latest/">Docs</a>
+            <a href="https://github.com/jfschaefer/aisysprojserver">Sources</a>
+            <a href="/plugins">Plugins</a>
+        </nav>
+    </header>
+    <main>
+        {% block body %}{% endblock %}
+    </main>
+    <footer>
+        <p style="color:gray">AISysProj server version {{ SERVER_VERSION }}</p>
+        <script src="https://privacy.kwarc.info/legal.js"></script>
+    </footer>
 </body>
 </html>
