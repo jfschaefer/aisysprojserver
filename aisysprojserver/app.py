@@ -106,6 +106,18 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
     return app
 
 
-if __name__ == '__main__':
-    app = create_app()
+def main():
+    import sys
+    config = TestConfig()
+    if len(sys.argv) > 1:
+        if len(sys.argv) > 2:   # too many
+            print('Too many command line arguments')
+            sys.exit(1)
+        config.PERSISTENT = Path(sys.argv[1])
+
+    app = create_app(config)
     app.run()
+
+
+if __name__ == '__main__':
+    main()

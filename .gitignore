@@ -3,3 +3,4 @@ __pycache__
 *.swp
 doc/build
 doc/source/apidocs
+test_state
