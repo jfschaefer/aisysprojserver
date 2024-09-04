@@ -65,6 +65,10 @@ class _Instruments:
         )
 
 
+def get_pid() -> int:
+    return psutil.Process().pid
+
+
 _instruments: _Instruments = _Instruments()
 
 
@@ -75,7 +79,7 @@ def measure_action_processing(env_class_refstr: str):
         yield
     finally:
         _instruments.action_processing_duration_histogram.record(
-            (time.time() - start) * 1000, {'env_class': env_class_refstr}
+            (time.time() - start) * 1000, {'env_class': env_class_refstr, 'pid': get_pid()}
         )
 
 
@@ -86,12 +90,12 @@ def measure_run_creation_duration(env_class_refstr: str):
         yield
     finally:
         _instruments.run_creation_duration_histogram.record(
-            (time.time() - start) * 1000, {'env_class': env_class_refstr}
+            (time.time() - start) * 1000, {'env_class': env_class_refstr, 'pid': get_pid()}
         )
 
 
 def report_action(env_id: str, number_of_actions: int = 1):
-    _instruments.action_counter.add(number_of_actions, {'env_id': env_id})
+    _instruments.action_counter.add(number_of_actions, {'env_id': env_id, 'pid': get_pid()})
 
 
 def _setup_db_size_gauge(config: Config):
