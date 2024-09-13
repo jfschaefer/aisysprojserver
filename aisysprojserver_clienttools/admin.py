@@ -53,12 +53,12 @@ class AdminClient:
     def make_env(self, env_class: str, identifier: str, display_name: str, config: Any = {},
                  overwrite: bool = False) -> tuple[int, Any]:
         data = MakeEnvRequest(env_class=env_class, display_name=display_name,
-                              config=config, overwrite=overwrite).to_dict()
+                              config=config, overwrite=overwrite).model_dump()
         data['admin-pwd'] = self.pwd
         return self.send_request(f'makeenv/{identifier}', method='PUT', json=data)
 
     def make_group(self, identifier: str, title: str, description: str, overwrite: bool = False) -> tuple[int, Any]:
-        data = MakeGroupRequest(title=title, description=description, overwrite=overwrite).to_dict()
+        data = MakeGroupRequest(title=title, description=description, overwrite=overwrite).model_dump()
         data['admin-pwd'] = self.pwd
         return self.send_request(f'groupmanagement/make/{identifier}', method='PUT', json=data)
 

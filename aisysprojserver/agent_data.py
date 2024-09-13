@@ -6,7 +6,7 @@ import sqlalchemy
 
 from aisysprojserver import models
 from aisysprojserver.env_interface import AgentDataSummary
-from aisysprojserver.json_util import json_load
+from aisysprojserver.util import json_load
 from aisysprojserver.run import Run
 
 

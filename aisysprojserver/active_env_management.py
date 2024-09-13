@@ -1,27 +1,25 @@
-import dataclasses
 import re
+from typing import Any
 
-from dataclasses_json import dataclass_json, Undefined
 from flask import request, g, jsonify
-from marshmallow import ValidationError
+from pydantic import BaseModel
 from werkzeug.exceptions import BadRequest
 
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.authentication import require_admin_auth
-from aisysprojserver.json_util import json_dump
 from aisysprojserver.plugins import PluginManager
 from aisysprojserver.telemetry import MonitoredBlueprint
+from aisysprojserver.util import json_dump, parse_request, PYDANTIC_REQUEST_CONFIG
 
 bp = MonitoredBlueprint('active_env_management', __name__)
 
 
-@dataclass_json(undefined=Undefined.EXCLUDE)
-@dataclasses.dataclass(frozen=True)
-class MakeEnvRequest:
+class MakeEnvRequest(BaseModel):
+    model_config = PYDANTIC_REQUEST_CONFIG
+
     env_class: str
     display_name: str
-    # TODO: Should be any, but that does not work because of https://github.com/lidatong/dataclasses-json/issues/292
-    config: dict
+    config: Any
     display_group: str = ''    # Not used anymore, but kept for compatibility
     overwrite: bool = False
 
@@ -36,11 +34,7 @@ def makeenv(env: str):
     if not re.match('^[a-zA-Z0-9-.]+$', env):
         raise BadRequest(f'Illegal environment name {env!r}')
 
-    try:
-        schema = MakeEnvRequest.schema()
-        request_data: MakeEnvRequest = schema.load(content)
-    except ValidationError as e:
-        raise BadRequest('Bad JSON body: ' + repr(e.messages))
+    request_data: MakeEnvRequest = parse_request(MakeEnvRequest, content)
 
     PluginManager.get(request_data.env_class)  # ensure that it exists
 

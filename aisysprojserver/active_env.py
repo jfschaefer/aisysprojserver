@@ -6,7 +6,7 @@ from werkzeug.exceptions import BadRequest
 import aisysprojserver.models as models
 from aisysprojserver.agent_data import get_all_agentdata_for_env
 from aisysprojserver.env_interface import GenericEnvironment, EnvInfo, EnvData
-from aisysprojserver.json_util import json_load
+from aisysprojserver.util import json_load
 from aisysprojserver.plugins import PluginManager
 from aisysprojserver.run import Run
 

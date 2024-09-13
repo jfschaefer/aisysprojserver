@@ -3,7 +3,7 @@ psutil
 sqlalchemy
 Flask
 Werkzeug
-dataclasses_json
+pydantic
 marshmallow
 requests
 click

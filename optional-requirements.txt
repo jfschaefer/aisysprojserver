@@ -1,3 +1,6 @@
 # these dependencies are not necessary for the server to work, but are often required by plugins
 # (which cannot install their own dependencies)
 numpy~=1.23.5
+
+# this should eventually be removed (plugins should use pydantic instead)
+dataclasses_json

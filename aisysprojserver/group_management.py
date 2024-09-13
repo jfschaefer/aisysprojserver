@@ -1,22 +1,21 @@
-import dataclasses
 import re
 
-from dataclasses_json import dataclass_json, Undefined
 from flask import g, request, jsonify
-from marshmallow import ValidationError
+from pydantic import BaseModel
 from werkzeug.exceptions import BadRequest
 
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.authentication import require_admin_auth
 from aisysprojserver.group import Group
 from aisysprojserver.telemetry import MonitoredBlueprint
+from aisysprojserver.util import parse_request, PYDANTIC_REQUEST_CONFIG
 
 bp = MonitoredBlueprint('group_management', __name__)
 
 
-@dataclass_json(undefined=Undefined.EXCLUDE)
-@dataclasses.dataclass(frozen=True)
-class MakeGroupRequest:
+class MakeGroupRequest(BaseModel):
+    model_config = PYDANTIC_REQUEST_CONFIG
+
     title: str
     description: str
     overwrite: bool = False
@@ -32,11 +31,7 @@ def makegroup(group: str):
     if not re.match('^[a-zA-Z0-9-.]+$', group):
         raise BadRequest(f'Illegal group identifier {group.isidentifier()}')
 
-    try:
-        schema = MakeGroupRequest.schema()
-        request_data: MakeGroupRequest = schema.load(content)
-    except ValidationError as e:
-        raise BadRequest('Bad JSON body: ' + repr(e.messages))
+    request_data: MakeGroupRequest = parse_request(MakeGroupRequest, content)
 
     Group.new(
         identifier=group,

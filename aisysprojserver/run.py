@@ -4,7 +4,7 @@ from typing import Any
 
 from aisysprojserver import models
 from aisysprojserver.env_interface import AbbreviatedRunData, RunData, ActionHistoryEntry
-from aisysprojserver.json_util import json_load
+from aisysprojserver.util import json_load
 
 
 class Run(models.ModelMixin[models.RunModel]):
