@@ -11,6 +11,8 @@ Content
    terminology
    getting_started
    clients
+   server_protocol_v0
+   server_protocol_v1
    new_environment
    contribute
 

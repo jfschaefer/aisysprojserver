@@ -45,8 +45,7 @@ def exception_handler(exception):
         admin.ERROR_BUFFER.pop(0)  # not exactly efficient, I think, but easy and not a problem
 
     if hasattr(g, 'isJSON') and g.isJSON:
-        response = jsonify({'errorcode': 500, 'errorname': 'Internal Server Error',
-                            'description': description})
+        response = jsonify({'errorcode': 500, 'errorname': 'Internal Server Error', 'description': description})
         response.status_code = 500
         return response
     else:

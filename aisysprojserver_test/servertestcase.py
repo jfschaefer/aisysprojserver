@@ -10,6 +10,10 @@ from aisysprojserver.app import create_app
 from aisysprojserver_clienttools.admin import AdminClient
 
 
+def get_strong_nim_move(percept):
+    return max((percept % 4), 1)
+
+
 class TestAdmin(AdminClient):
     def __init__(self, baseurl: str, authentication: str, client: FlaskClient):
         AdminClient.__init__(self, baseurl, authentication)
@@ -18,6 +22,9 @@ class TestAdmin(AdminClient):
     def send_request(self, path: str, **kwargs) -> tuple[int, Any]:
         response = self.client.open(path, **kwargs)
         return response.status_code, response.get_json()
+
+    def send_request_raw(self, path: str, **kwargs):
+        return self.client.open(path, **kwargs)
 
 
 class TestHelper(object):

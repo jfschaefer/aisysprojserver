@@ -25,7 +25,7 @@ except (ImportError, ModuleNotFoundError):
         return json.loads(string)
 
 
-PYDANTIC_REQUEST_CONFIG = ConfigDict(frozen=True, extra='ignore')
+PYDANTIC_REQUEST_CONFIG = ConfigDict(frozen=True, extra='ignore', populate_by_name=True)
 
 
 _T = TypeVar('_T', bound=BaseModel)

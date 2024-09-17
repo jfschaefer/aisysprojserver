@@ -12,5 +12,6 @@ ignore =
 exclude =
     venv,
     __pycache__,
+    test_state,
     doc/source/conf.py,
 

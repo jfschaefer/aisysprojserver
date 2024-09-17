@@ -9,7 +9,7 @@ project = 'aisysprojserver'
 copyright = '2022, Jan Frederik Schaefer'
 author = 'Jan Frederik Schaefer'
 
-extensions = ['sphinx.ext.autodoc', 'sphinxcontrib.apidoc', 'sphinx.ext.todo']
+extensions = ['sphinx.ext.autodoc', 'sphinxcontrib.apidoc', 'sphinx.ext.todo', 'sphinxcontrib.autodoc_pydantic']
 
 apidoc_module_dir = str(Path(__file__).parent.parent.parent)
 apidoc_output_dir = 'apidocs'

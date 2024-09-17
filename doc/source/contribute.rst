@@ -31,6 +31,7 @@ Releases
 - Make a new release on docker hub:
 
 .. code:: bash
+
     sudo docker build -t jfschaefer/gs:0.0.5 .
     sudo docker build -t jfschaefer/gs:latest .
     sudo docker push jfschaefer/gs:0.0.5

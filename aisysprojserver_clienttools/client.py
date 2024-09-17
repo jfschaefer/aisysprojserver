@@ -1,4 +1,4 @@
-"""A more sophisticated AISysProj server client implementation than in ``client_simple.py``."""
+"""A more sophisticated AISysProj server client implementation than in ``client_simple_v1.py``."""
 
 import abc
 import dataclasses
@@ -7,69 +7,63 @@ import logging
 import multiprocessing
 import time
 from pathlib import Path
-from typing import TypedDict, TypeAlias, Optional, Callable
+from typing import TypedDict, Optional, Callable, Any, Literal
 
 import requests as requests_lib
 
 logger = logging.getLogger(__name__)
 
-Json: TypeAlias = dict[str, 'Json'] | list['Json'] | str | int | float | bool | None
+# type info (not using e.g. pydantic to keep dependencies minimal)
+AgentConfig = TypedDict('AgentConfig', {'agent': str, 'env': str, 'url': str, 'pwd': str})
+Action = TypedDict('Action', {'run': str, 'act_no': int, 'action': Any})
+ActionRequest = TypedDict('ActionRequest', {'run': str, 'act_no': int, 'percept': Any})
+Message = TypedDict('Message', {'type': Literal['info', 'warning', 'error'], 'content': str, 'run': Optional[str]})
+ServerResponse = TypedDict(
+    'ServerResponse',
+    {
+        'action_requests': list[ActionRequest],
+        'active_runs': list[str],
+        'messages': list[Message],
+        'finished_runs': list[str],
+    }
+)
 
 
-class AgentConfig(TypedDict):
-    agent: str
-    env: str
-    url: str
-    pwd: str
-
-
-def _handle_response(response) -> Optional[dict[str, Json]]:
+def _handle_response(response) -> Optional[ServerResponse]:
     if response.status_code == 200:
-        return _handle_success_response(response)
+        return response.json()
     elif response.status_code == 503:
         logger.warning('Server is busy - retrying in 3 seconds')
         time.sleep(3)
         return None
     else:  # in other cases, retrying does not help (authentication problems, etc.)
-        logger.error(f'Status code {response.status_code}. Stopping.')
+        logger.error(f'Status code {response.status_code}.')
+        j = response.json()
+        logger.error(f'{j["errorname"]}: {j["description"]}')
+        logger.error('Stopping.')
         response.raise_for_status()
 
 
-def _handle_success_response(response) -> Optional[dict[str, Json]]:
-    response_json = response.json()
-    for error in response_json['errors']:
-        logger.error(f'Error message from server: {error}')
-    for message in response_json['messages']:
-        logger.info(f'Message from server: {message}')
-
-    action_requests = response_json['action-requests']
-    if action_requests:
-        return {
-            action_request['run']: action_request['percept']
-            for action_request in action_requests
-        }
-    else:
-        logger.info('The server has no new action requests - waiting for 1 second.')
-        time.sleep(1)  # wait a moment to avoid overloading the server and then try again
-        return None
-
-
-def send_request(config: AgentConfig, actions: dict[str, Json], single_request: bool = False) -> dict[str, Json]:
+def send_request(
+        config: AgentConfig,
+        actions: list[Action],
+        *,
+        to_abandon: Optional[list[str]] = None,
+        parallel_runs: bool = True
+) -> dict[str, Any]:
     while True:  # retry until success
-        logger.info(f'Sending request with {len(actions) or "no"} actions: {actions}')
+        logger.debug(f'Sending request with {len(actions) or "no"} actions: {actions}')
         base_url = config['url']
         if not base_url.endswith('/'):
             base_url += '/'
         response = requests_lib.put(f'{base_url}act/{config["env"]}', json={
+            'protocol_version': 1,
             'agent': config['agent'],
             'pwd': config['pwd'],
-            'actions': [
-                {
-                    'run': run_id,
-                    'action': action,
-                } for run_id, action in actions.items()
-            ],
-            'single_request': single_request,
+            'actions': actions,
+            'to_abandon': to_abandon or [],
+            'parallel_runs': parallel_runs,
+            'client': 'py-client-v1',
         })
         result = _handle_response(response)
         if result is not None:
@@ -80,102 +74,70 @@ def send_request(config: AgentConfig, actions: dict[str, Json], single_request: 
 class RequestInfo:
     run_url: str
     action_number: int
-    run_number: int
-    identifier: str
-
-    @classmethod
-    def create(cls, identifier: str, agent_config: AgentConfig) -> 'RequestInfo':
-        run_number, action_number = identifier.split('#')
-        url = agent_config['url']
-        if not url.endswith('/'):
-            url += '/'
-        url += f'run/{agent_config["env"]}/{run_number}'
-        return cls(
-            run_url=url,
-            action_number=int(action_number),
-            run_number=int(run_number),
-            identifier=identifier,
-        )
+    run_id: str
 
 
 class _RunTracker:
     def __init__(self):
-        self.old_runs: set[int] = set()
-        self.old_runs_finalized: bool = False
-        self.ongoing_runs: dict[int, int] = {}
-        self.number_finished_runs_nonold: int = 0
+        self.number_of_new_runs_finished: int = 0
+        self.old_runs: Optional[set[str]] = None
+        self.ongoing_runs: set[str] = set()
 
-    def update(self, ris: list[RequestInfo]):
-        # step 1: check if there are repeated requests
-        # idea: if the agent send an invalid action, the server will send the same request again,
-        # but it will not send requests for other on-going runs (to avoid cheating by delaying the finish of a run)
+    def update(self, response: ServerResponse):
+        if self.old_runs is None:
+            self.old_runs = set(response['active_runs'])
+            for rq in response['action_requests']:
+                if rq['act_no'] == 0:  # not actually old
+                    self.old_runs.remove(rq['run'])
 
-        is_repeat = False
-        for ri in ris:
-            if ri.run_number in self.ongoing_runs and self.ongoing_runs[ri.run_number] == ri.action_number:
-                is_repeat = True
-                break
-
-        # step 2: update ongoing/old runs
-        for ri in ris:
-            if ri.run_number in self.ongoing_runs:
-                self.ongoing_runs[ri.run_number] = ri.action_number
-            elif ri.action_number == 0:
-                self.ongoing_runs[ri.run_number] = 0
-            else:  # it must be an old run
-                if self.old_runs_finalized:
-                    logger.warning('Unexpectedly got an old run request. This may happen '
-                                   'when switching from parallel to single requests.')
-                    self.number_finished_runs_nonold = 0
-                    self.old_runs.add(ri.run_number)
-                else:
-                    self.old_runs.add(ri.run_number)
-                    self.ongoing_runs[ri.run_number] = ri.action_number
-
-        # step 3: check if old runs are finalized
-        if not is_repeat and self.ongoing_runs:
-            self.old_runs_finalized = True  # by now we should have received requests for all old runs
-
-        # step 4: remove and count finished runs
-        if not is_repeat:
-            active = set(ri.run_number for ri in ris)
-            for run_number in list(self.ongoing_runs):
-                if run_number not in active:
-                    del self.ongoing_runs[run_number]
-                    if run_number not in self.old_runs:
-                        self.number_finished_runs_nonold += 1
+        ongoing_runs = set(response['active_runs'])
+        self.number_of_new_runs_finished += len(self.ongoing_runs - ongoing_runs)
+        self.ongoing_runs = ongoing_runs
 
 
 class RequestProcessor(abc.ABC):
     @abc.abstractmethod
-    def process_requests(self, requests: list[tuple[Json, RequestInfo]], counter: _RunTracker) -> dict[str, Json]:
+    def process_requests(self, requests: list[tuple[Any, RequestInfo]], counter: _RunTracker) -> list[Action]:
         pass
 
     def close(self):
         pass
 
+    def on_new_run(self, run_id: str):
+        logger.info(f'Starting new run ({run_id})')
+
+    def on_finished_run(self, run_id: str, url: str, outcome: Any):
+        logger.info(f'Finished run {run_id} with outcome {json.dumps(outcome)}')
+        logger.info(f'You can view the run at {url}')
+
 
 class SimpleRequestProcessor(RequestProcessor):
-    def __init__(self, action_function: Callable[[Json, RequestInfo], Json], processes: int = 1):
+    def __init__(self, action_function: Callable[[Any, RequestInfo], Any], processes: int = 1):
         self.action_function = action_function
         self.pool = None
         if processes > 1:
             self.pool = multiprocessing.Pool(processes=processes)
 
-    def process_requests(self, requests: list[tuple[Json, RequestInfo]], counter: _RunTracker) -> dict[str, Json]:
+    def process_requests(self, requests: list[tuple[Any, RequestInfo]], counter: _RunTracker) -> list[Action]:
         if self.pool is None:
-            return {
-                request_info.identifier: self.action_function(percept, request_info)
-                for percept, request_info in requests
-            }
+            return [
+                {
+                    'run': request_info.run_id,
+                    'act_no': request_info.action_number,
+                    'action': self.action_function(percept, request_info)
+                } for percept, request_info in requests
+            ]
         else:
-            return {
-                request[1].identifier: action
-                for action, request in zip(
+            return [
+                {
+                    'run': request_info.run_id,
+                    'act_no': request_info.action_number,
+                    'action': action
+                } for action, (_percept, request_info) in zip(
                     self.pool.starmap(self.action_function, requests),
                     requests
                 )
-            }
+            ]
 
     def close(self):
         if self.pool is not None:
@@ -183,8 +145,8 @@ class SimpleRequestProcessor(RequestProcessor):
 
 
 def run(
-        agent_function: Callable[[Json, RequestInfo], Json],
         agent_config_file: str | Path,
+        agent_function: Callable[[Any, RequestInfo], Any],
         *,
         parallel_runs: bool = True,
         processes: int = 1,
@@ -192,27 +154,38 @@ def run(
 ):
     agent_config = json.loads(Path(agent_config_file).read_text())
 
+    def get_run_url(run_id: str) -> str:
+        url = agent_config['url']
+        if not url.endswith('/'):
+            url += '/'
+        return url + f'run/{agent_config["env"]}/{run_id}'
+
     request_processor = SimpleRequestProcessor(agent_function, processes=processes)
     counter = _RunTracker()
 
-    actions_to_send: dict[str, Json] = {}
+    actions_to_send: list[Action] = []
 
     try:
         while True:
-            new_requests_raw = send_request(agent_config, actions_to_send, single_request=not parallel_runs)
-            requests = [
-                (percept, RequestInfo.create(identifier, agent_config))
-                for identifier, percept in new_requests_raw.items()
-            ]
-            counter.update([ri for _, ri in requests])
+            response = send_request(agent_config, actions_to_send, parallel_runs=parallel_runs)
 
-            if run_limit is not None and counter.number_finished_runs_nonold >= run_limit:
+            counter.update(response)
+
+            if run_limit is not None and counter.number_of_new_runs_finished >= run_limit:
                 logger.info(f'Stopping after {run_limit} runs.')
                 break
 
+            requests = [
+                (ar['percept'], RequestInfo(get_run_url(ar['run']), ar['act_no'], ar['run']))
+                for ar in response['action_requests']
+            ]
+
             for r in requests:
                 if r[1].action_number == 0:
-                    logger.info(f'Starting new run: {r[1].run_url}')
+                    request_processor.on_new_run(r[1].run_id)
+
+            for run_id, outcome in response['finished_runs']:
+                request_processor.on_finished_run(run_id, get_run_url(run_id), outcome)
 
             actions_to_send = request_processor.process_requests(requests, counter)
 

@@ -1,10 +1,10 @@
 import dataclasses
 import re
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Annotated
 
 from flask import g, request, jsonify
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AfterValidator
 from sqlalchemy import select
 from werkzeug.exceptions import BadRequest
 
@@ -22,22 +22,30 @@ bp = MonitoredBlueprint('act', __name__)
 _run_id_regex = re.compile('^(?P<runid>[0-9]+)#(?P<actionno>[0-9]+)$')
 
 
+def _validate_old_runid(runid: str):
+    assert _run_id_regex.match(runid) is not None
+    return runid
+
+
+OldRunId = Annotated[str, AfterValidator(_validate_old_runid)]
+
+
 @dataclasses.dataclass(frozen=True)
 class ActConfig:
     parallel_runs: bool = True
 
 
-class Action(BaseModel):
+class ActionV0(BaseModel):
     model_config = PYDANTIC_REQUEST_CONFIG
 
-    run: str
+    run: OldRunId
     action: Any
 
 
-class ActionRequest(BaseModel):
+class ActionRequestV0(BaseModel):
     model_config = PYDANTIC_REQUEST_CONFIG
 
-    run: str
+    run: OldRunId
     percept: Any
 
 
@@ -46,14 +54,17 @@ class RequestV0(BaseModel):
 
     agent: str
     pwd: str
-    actions: list[Action] = Field(default_factory=list)
-    single_request: bool = Field(default=False, serialization_alias='single-request')
+    actions: list[ActionV0] = Field(default_factory=list)
+    single_request: bool = Field(default=False)
 
     def to_v1(self) -> 'RequestV1':
         return RequestV1(
             agent=self.agent,
             pwd=self.pwd,
-            actions=self.actions,
+            actions=[
+                ActionV1(action=a.action, run=a.run.split('#')[0], act_no=int(a.run.split('#')[1]))
+                for a in self.actions
+            ],
             parallel_runs=not self.single_request,
             client=''
         )
@@ -64,7 +75,23 @@ class ResponseV0(BaseModel):
 
     errors: list[str] = Field(default_factory=list)
     messages: list[str] = Field(default_factory=list)
-    action_requests: list[ActionRequest] = Field(default_factory=list, serialization_alias='action-requests')
+    action_requests: list[ActionRequestV0] = Field(default_factory=list)
+
+
+class ActionV1(BaseModel):
+    model_config = PYDANTIC_REQUEST_CONFIG
+
+    action: Any
+    run: str
+    act_no: int
+
+
+class ActionRequestV1(BaseModel):
+    model_config = PYDANTIC_REQUEST_CONFIG
+
+    percept: Any
+    run: str
+    act_no: int
 
 
 class RequestV1(BaseModel):
@@ -72,9 +99,9 @@ class RequestV1(BaseModel):
 
     agent: str
     pwd: str
-    actions: list[Action] = Field(default_factory=list)
-    parallel_runs: bool = Field(default=True, serialization_alias='parallel-runs')
-    to_abandon: list[str] = Field(default_factory=list, serialization_alias='to-abandon')
+    actions: list[ActionV1] = Field(default_factory=list)
+    parallel_runs: bool = Field(default=True)
+    to_abandon: list[str] = Field(default_factory=list)
     client: str = ''
 
 
@@ -88,17 +115,17 @@ class Message(BaseModel):
     model_config = PYDANTIC_REQUEST_CONFIG
 
     run: Optional[str] = None
-    content: Any
+    content: str
     type: MessageType
 
 
 class ResponseV1(BaseModel):
     model_config = PYDANTIC_REQUEST_CONFIG
 
-    action_requests: list[ActionRequest] = Field(default_factory=list, serialization_alias='action-requests')
-    active_runs: list[str] = Field(default_factory=list, serialization_alias='active-runs')
+    action_requests: list[ActionRequestV1] = Field(default_factory=list)
+    active_runs: list[str] = Field(default_factory=list)
     messages: list[Message] = Field(default_factory=list)
-    finished_runs: dict[str, Any] = Field(default_factory=dict, serialization_alias='finished-runs')
+    finished_runs: dict[str, Any] = Field(default_factory=dict)
 
     def to_v0(self) -> ResponseV0:
         def fmt_msg(m: Message) -> str:
@@ -106,7 +133,10 @@ class ResponseV1(BaseModel):
         return ResponseV0(
             errors=[fmt_msg(m) for m in self.messages if m.type == MessageType.error],
             messages=[fmt_msg(m) for m in self.messages if m.type != MessageType.error],
-            action_requests=self.action_requests
+            action_requests=[
+                ActionRequestV0(run=f'{a.run}#{a.act_no}', percept=a.percept)
+                for a in self.action_requests
+            ]
         )
 
 
@@ -128,13 +158,7 @@ class ActManager:
         self.messages: list[Message] = []
         self.finished_runs: dict[str, Any] = {}
 
-    def process_action(self, action: Action):
-        if (match := _run_id_regex.match(action.run)) is None:
-            self.messages.append(Message(content=f'Malformed run identifier {match!r}', type=MessageType.error))
-            return
-        run_id = int(match.group('runid'))
-        action_no = int(match.group('actionno'))
-
+    def process_action(self, action: ActionV1):
         do_cleanup: bool = False
 
         with models.Session() as session:
@@ -144,7 +168,7 @@ class ActManager:
             # STEP 1: LOAD MODELS
             # Note: we do not use the Run class as a wrapper because everything should happen in the same session
             # (which is not supported by the wrapper)
-            run_model: RunModel = session.get(RunModel, run_id)
+            run_model: RunModel = session.get(RunModel, action.run)
             if not run_model:
                 self.messages.append(Message(run=action.run, content='Invalid run id', type=MessageType.error))
             if run_model.agent != self.account.identifier:
@@ -153,10 +177,10 @@ class ActManager:
                 return
 
             history = json_load(run_model.history)
-            if len(history) != action_no:
+            if len(history) != action.act_no:
                 self.messages.append(Message(
                     run=action.run,
-                    content=f'Wrong action number {action_no} '
+                    content=f'Wrong action number {action.act_no} '
                             '(the action might have been for an earlier action request)',
                     type=MessageType.error
                 ))
@@ -269,14 +293,14 @@ class ActManager:
             max_requests = 1
 
         with models.Session() as session:
-            def serialize_run(run: RunModel) -> ActionRequest:
+            def serialize_run(run: RunModel) -> ActionRequestV1:
                 run.outstanding_action = True
                 session.add(run)
                 history = json_load(run.history)
                 rd = RunData([ActionHistoryEntry(a, e) for a, e in history], json_load(run.state), None,
                              run_id=run.identifier, agent_name='/'.join(run.agent.split('/')[1:]))
                 ar = self.env.get_action_request(rd)
-                return ActionRequest(run=f'{run.identifier}#{len(history)}', percept=ar.content)
+                return ActionRequestV1(run=str(run.identifier), act_no=len(history), percept=ar.content)
 
             query = select(RunModel).where(
                 RunModel.finished == False,  # noqa: E712
@@ -327,8 +351,8 @@ def act(env_id: str):
         raise BadRequest('Expected JSON body')
 
     protocol_version = 0
-    if 'protocol-version' in content:
-        protocol_version = content['protocol-version']
+    if 'protocol_version' in content:
+        protocol_version = content['protocol_version']
 
     request_data: RequestV1
 
@@ -349,6 +373,9 @@ def act(env_id: str):
 
     response = actor.get_act_response()
     if protocol_version == 0:
-        return jsonify(response.to_v0().model_dump(by_alias=True))
+        r = response.to_v0().model_dump(by_alias=True)
+        r['action-requests'] = r['action_requests']
+        del r['action_requests']
+        return jsonify(r)
 
     return jsonify(response.model_dump(by_alias=True))
