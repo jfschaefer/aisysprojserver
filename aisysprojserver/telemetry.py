@@ -94,8 +94,14 @@ def measure_run_creation_duration(env_class_refstr: str):
         )
 
 
-def report_action(env_id: str, number_of_actions: int = 1):
-    _instruments.action_counter.add(number_of_actions, {'env_id': env_id, 'pid': get_pid()})
+def report_action(env_id: str, protocol_version: str, number_of_actions: int = 1, client: Optional[str] = None):
+    client = client or 'unknown'
+    if client not in {'py-simple-client-v0', 'py-simple-client-v1', 'py-client-v1', 'unknown'}:
+        client = 'other'
+    _instruments.action_counter.add(
+        number_of_actions,
+        {'env_id': env_id, 'pid': get_pid(), 'protocol_version': protocol_version, 'client': client}
+    )
 
 
 def _setup_db_size_gauge(config: Config):

@@ -366,7 +366,10 @@ def act(env_id: str):
 
     actor = ActManager(env_id, request_data)
 
-    telemetry.report_action(env_id, len(request_data.actions))
+    telemetry.report_action(
+        env_id, protocol_version=str(protocol_version), number_of_actions=len(request_data.actions),
+        client=request_data.client
+    )
 
     for action in request_data.actions:
         with telemetry.measure_action_processing(actor.active_env.env_class_refstr):
