@@ -2,7 +2,7 @@ from pathlib import Path
 
 import jinja2
 from flask import url_for
-from flask_caching import Cache
+from flask_caching import Cache     # type: ignore
 from werkzeug.exceptions import NotFound, BadRequest
 
 from aisysprojserver import __version__
@@ -38,8 +38,9 @@ def frontpage():
 
 @bp.route('/group/<group>')
 @cache.cached(timeout=10)
-def group_page(group: str):
-    group = Group(group)
+def group_page(group: str | Group):
+    if isinstance(group, str):
+        group = Group(group)
     if not group.exists():
         raise NotFound()
     envs_list: list[ActiveEnvironment] = group.get_envs()
@@ -51,8 +52,14 @@ def group_page(group: str):
         title=group.display_name,
         description=group.description,
         # TODO: why do we need *.identifier[0] instead of just *.identifier?
-        envs=[(url_for('website.env_page', env=env.identifier[0]), env.display_name) for env in envs_list],
-        subgroups=[(url_for('website.group_page', group=g.identifier[0]), g.display_name) for g in subgroup_list],
+        envs=[
+            (url_for('website.env_page', env=env.identifier[0]), env.display_name)
+            for env in envs_list
+        ],
+        subgroups=[
+            (url_for('website.group_page', group=g.identifier[0]), g.display_name)
+            for g in subgroup_list
+        ],
         **TEMPLATE_STANDARD_KWARGS
     )
 

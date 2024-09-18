@@ -15,30 +15,30 @@ class Run(models.ModelMixin[models.RunModel]):
         self.identifier = identifier
 
     def get_history(self) -> list[str]:
-        return json_load(self._require_model().history)
+        return json_load(str(self._require_model().history))
 
     def get_state(self) -> Any:
-        return json_load(self._require_model().state)
+        return json_load(str(self._require_model().state))
 
     def to_abbreviated_run_data(self) -> AbbreviatedRunData:
         return AbbreviatedRunData(
             run_id=self.identifier,
-            outcome=json_load(self._require_model().outcome),
-            agent_name=self._require_model().agent,
+            outcome=json_load(str(self._require_model().outcome)),
+            agent_name=str(self._require_model().agent),
         )
 
     def to_run_data(self) -> RunData:
-        history = json_load(self._require_model().history)
+        history = json_load(str(self._require_model().history))
         return RunData(
             action_history=[ActionHistoryEntry(action, extra) for action, extra in history],
-            state=json_load(self._require_model().state),
-            outcome=json_load(self._require_model().outcome),
+            state=json_load(str(self._require_model().state)),
+            outcome=json_load(str(self._require_model().outcome)),
             agent_name='/'.join(self._require_model().agent.split('/')[1:]),
             run_id=self.identifier,
         )
 
     def env_str(self) -> str:
-        return self._require_model().environment
+        return str(self._require_model().environment)
 
 
 if __name__ == '__main__':

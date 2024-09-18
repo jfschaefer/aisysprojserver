@@ -176,7 +176,7 @@ def setup(config: Config):
     readers = []
 
     if config.PROMETHEUS_PORT is not None:
-        from opentelemetry.exporter.prometheus import PrometheusMetricReader
+        from opentelemetry.exporter.prometheus import PrometheusMetricReader  # type: ignore
         readers.append(PrometheusMetricReader())
     if config.OTLP_ENDPOINT is not None:
         from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter

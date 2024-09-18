@@ -23,7 +23,7 @@ def run(config_file, action_function, parallel_runs=True):
     with open(config_file, 'r') as fp:
         config = json.load(fp)
 
-    actions = []
+    actions: list = []
     for request_number in itertools.count():
         logger.info(f'Iteration {request_number} (sending {len(actions)} actions)')
         # send request

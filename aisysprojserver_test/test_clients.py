@@ -2,6 +2,7 @@ import json
 import tempfile
 from itertools import product
 from pathlib import Path
+from typing import Callable
 
 from aisysprojserver_test.servertestcase import get_strong_nim_move, ServerTestCase
 
@@ -13,6 +14,7 @@ class SuccessException(Exception):
 class ActTest(ServerTestCase):
 
     def simple_client_test(self, version: str, parallel_runs: bool, agent_config: Path):
+        run: Callable   # type: ignore
         if version == 'simple_v0':
             from aisysprojserver_clienttools.client_simple_v0 import run
         elif version == 'simple_v1':
@@ -31,6 +33,7 @@ class ActTest(ServerTestCase):
                 raise SuccessException()
             return get_strong_nim_move(percept)
 
+        my_action_function: Callable   # type: ignore
         if version == 'client':
             my_action_function = lambda percept, _: _my_action_function(percept)
         else:
@@ -41,10 +44,10 @@ class ActTest(ServerTestCase):
 
         def myput(*args, **kwargs):
             # This is a hack to redirect requests to the flask test client
-            args = list(args)
-            if args[0].startswith(self.admin.base_url):
-                args[0] = args[0][len(self.admin.base_url):]
-            result = self.admin.send_request_raw(*args, **kwargs)
+            arg_list = list(args)
+            if arg_list[0].startswith(self.admin.base_url):
+                arg_list[0] = arg_list[0][len(self.admin.base_url):]
+            result = self.admin.send_request_raw(*arg_list, **kwargs)
 
             # the following hack makes it so that request.json is a function that returns the json, not the json itself
             # as the client expects from requests

@@ -59,8 +59,7 @@ class PluginManager:
         sys.path.append(str(plugins_dir))
 
     @classmethod
-    @property
-    def initialized(cls) -> bool:
+    def is_initialized(cls) -> bool:
         return cls.plugins_dir is not None
 
     @classmethod
@@ -71,6 +70,7 @@ class PluginManager:
                 plugin.unimport()
             cls.plugins = {}
 
+        assert cls.plugins_dir is not None, 'plugins_dir not set'
         for directory in cls.plugins_dir.iterdir():
             if not directory.is_dir():
                 logging.warning(f'{directory} does not seem to be a plugin directory')
@@ -103,7 +103,7 @@ class PluginManager:
     @classmethod
     def get(cls, reference: str):
         """ reference can be 'module.submodule' or 'module.submodule:attribute' """
-        assert cls.initialized
+        assert cls.is_initialized()
         if ':' in reference:
             module, attribute = reference.split(':')
         else:

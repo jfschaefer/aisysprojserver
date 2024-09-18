@@ -14,7 +14,7 @@ from aisysprojserver.run import Run
 class ActiveEnvironment(models.ModelMixin[models.ActiveEnvironmentModel]):
     def __init__(self, identifier: str):
         models.ModelMixin.__init__(self, models.ActiveEnvironmentModel)
-        self.identifier = identifier
+        self.identifier: str = identifier
 
     @classmethod
     def new(cls, identifier: str, env_class: str, display_name: str, display_group: str, config: str,
@@ -44,15 +44,15 @@ class ActiveEnvironment(models.ModelMixin[models.ActiveEnvironmentModel]):
 
     @property
     def display_name(self) -> str:
-        return self._require_model().displayname
+        return str(self._require_model().displayname)
 
     @property
     def display_group(self) -> str:
-        return self._require_model().displaygroup
+        return str(self._require_model().displaygroup)
 
     @property
     def env_class_refstr(self) -> str:
-        return self._require_model().env_class
+        return str(self._require_model().env_class)
 
     @property
     def recent_runs_key(self) -> str:
@@ -60,10 +60,10 @@ class ActiveEnvironment(models.ModelMixin[models.ActiveEnvironmentModel]):
 
     def get_env_instance(self) -> GenericEnvironment:
         model = self._require_model()
-        ge: type[GenericEnvironment] = PluginManager.get(model.env_class)
+        ge: type[GenericEnvironment] = PluginManager.get(str(model.env_class))
 
         return ge(EnvInfo(self.display_name, self.identifier),
-                  json_load(model.config))
+                  json_load(str(model.config)))
 
     def get_env_data(self) -> EnvData:
         with models.Session() as session:

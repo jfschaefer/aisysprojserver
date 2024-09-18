@@ -6,3 +6,4 @@
 * Switch to pydantic
 * Server protocol v1 (the original protocol is still supported)
 * Basic testing for Python clients
+* use mypy

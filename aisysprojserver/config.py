@@ -31,7 +31,7 @@ class Config:
     def LOG_FILE(self) -> Path:
         return self.PERSISTENT / 'aisysprojserver.log'
 
-    PROMETHEUS_PORT: Optional[9464] = 9464   # port on which Prometheus metrics are served (telemetry) - None to disable
+    PROMETHEUS_PORT: Optional[int] = 9464   # port on which Prometheus metrics are served (telemetry) - None to disable
     OTLP_ENDPOINT: Optional[str] = None  # OpenTelemetry collector endpoint - None to disable
 
     # Caching

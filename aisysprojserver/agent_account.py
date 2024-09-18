@@ -57,7 +57,7 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
 
             # if an authentication is provided, we require it to be correct
             # this means that later on we don't have to worry about retrieving the password from the request
-            require_password_match(pwd, account._require_model().password)
+            require_password_match(pwd, str(account._require_model().password))
             account._authenticated = True
 
         return account
@@ -72,7 +72,7 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
             )
 
     def is_active(self) -> bool:
-        return self._require_model().status == AgentStatus.ACTIVE
+        return int(self._require_model().status) == AgentStatus.ACTIVE
 
     def require_active(self):
         if not self.is_active():
@@ -104,10 +104,10 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
 
     def block(self):
         def block(ac: models.AgentAccountModel):
-            ac.status = AgentStatus.LOCKED
+            ac.status = AgentStatus.LOCKED  # type: ignore
         self._change_model(block)
 
     def unblock(self):
         def unblock(ac: models.AgentAccountModel):
-            ac.status = AgentStatus.ACTIVE
+            ac.status = AgentStatus.ACTIVE  # type: ignore
         self._change_model(unblock)

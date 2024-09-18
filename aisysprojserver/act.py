@@ -176,7 +176,7 @@ class ActManager:
                     Message(run=action.run, content='This run does not belong to your agent', type=MessageType.error))
                 return
 
-            history = json_load(run_model.history)
+            history = json_load(str(run_model.history))
             if len(history) != action.act_no:
                 self.messages.append(Message(
                     run=action.run,
@@ -189,10 +189,10 @@ class ActManager:
             # STEP 2: PERFORM ACTION
             action_result = self.env.act(action.action, RunData(
                 action_history=[ActionHistoryEntry(action, extra) for action, extra in history],
-                state=json_load(run_model.state),
+                state=json_load(str(run_model.state)),
                 outcome=None,
                 agent_name='/'.join(run_model.agent.split('/')[1:]),
-                run_id=run_model.identifier,
+                run_id=int(run_model.identifier),
             ))
 
             # STEP 3: PROCESS ACTION RESULT
@@ -210,15 +210,15 @@ class ActManager:
             if action_result.message:
                 self.messages.append(Message(run=action.run, content=action_result.message, type=MessageType.info))
 
-            run_model.state = json_dump(action_result.new_state)
+            run_model.state = json_dump(action_result.new_state)    # type: ignore
             history.append([action.action, action_result.action_extra_info])
-            run_model.history = json_dump(history)
+            run_model.history = json_dump(history)  # type: ignore
 
             if action_result.outcome is not None:
                 self.finished_runs[action.run] = action_result.outcome
                 do_cleanup = self.process_outcome(action_result.outcome, run_model, session)
 
-            run_model.outstanding_action = False
+            run_model.outstanding_action = False  # type: ignore
             session.add(run_model)
             session.commit()
 
@@ -228,15 +228,15 @@ class ActManager:
     def process_outcome(self, outcome: Any, run_model: RunModel, session) -> bool:
         """ returns True iff cleanup is recommended """
         agent_data = self.get_agent_data_model(session)
-        run_model.outcome = json_dump(outcome)
-        run_model.finished = True
-        agent_data.total_runs += 1
+        run_model.outcome = json_dump(outcome)   # type: ignore
+        run_model.finished = True   # type: ignore
+        agent_data.total_runs += 1  # type: ignore
 
         # UPDATE RATINGS
         if agent_data.total_runs >= self.env.settings.MIN_RUNS_FOR_FULLY_EVALUATED:
-            agent_data.fully_evaluated = True
+            agent_data.fully_evaluated = True  # type: ignore
 
-        results = json_load(agent_data.recent_results)
+        results = json_load(str(agent_data.recent_results))
         results.append(outcome)
 
         match self.env.settings.RATING_STRATEGY:
@@ -248,17 +248,18 @@ class ActManager:
 
         if agent_data.fully_evaluated:
             if self.env.settings.RATING_OBJECTIVE == 'max':
-                agent_data.best_rating = max(agent_data.best_rating, agent_data.current_rating)
+                best_rating = max(float(agent_data.best_rating), float(agent_data.current_rating))
             else:
                 assert self.env.settings.RATING_OBJECTIVE == 'min'
-                agent_data.best_rating = min(agent_data.best_rating, agent_data.current_rating)
+                best_rating = min(float(agent_data.best_rating), float(agent_data.current_rating))
+            agent_data.best_rating = best_rating    # type: ignore
 
-        agent_data.recent_results = json_dump(results)
+        agent_data.recent_results = json_dump(results)   # type: ignore
 
         # UPDATE HISTORY OF RECENT RUNS
-        runs = json_load(agent_data.recently_finished_runs)
+        runs = json_load(str(agent_data.recently_finished_runs))
         runs.append(run_model.identifier)
-        agent_data.recently_finished_runs = json_dump(runs[-20:])
+        agent_data.recently_finished_runs = json_dump(runs[-20:])   # type: ignore
 
         kva = KeyValAccess(session)
         key = self.active_env.recent_runs_key
@@ -269,7 +270,7 @@ class ActManager:
         session.add(agent_data)
 
         # Reasoning: We should do the cleanup too often because it can mess with debugging.
-        return agent_data.total_runs % 2351 == 0
+        return int(agent_data.total_runs) % 2351 == 0
 
     def get_agent_data_model(self, session) -> AgentDataModel:
         agent_data_model = session.get(AgentDataModel, self.account.identifier)
@@ -294,11 +295,11 @@ class ActManager:
 
         with models.Session() as session:
             def serialize_run(run: RunModel) -> ActionRequestV1:
-                run.outstanding_action = True
+                run.outstanding_action = True   # type: ignore
                 session.add(run)
-                history = json_load(run.history)
-                rd = RunData([ActionHistoryEntry(a, e) for a, e in history], json_load(run.state), None,
-                             run_id=run.identifier, agent_name='/'.join(run.agent.split('/')[1:]))
+                history = json_load(str(run.history))
+                rd = RunData([ActionHistoryEntry(a, e) for a, e in history], json_load(str(run.state)), None,
+                             run_id=int(run.identifier), agent_name='/'.join(run.agent.split('/')[1:]))
                 ar = self.env.get_action_request(rd)
                 return ActionRequestV1(run=str(run.identifier), act_no=len(history), percept=ar.content)
 
@@ -307,7 +308,7 @@ class ActManager:
                 RunModel.agent == self.account.identifier
             )
             runs: list[RunModel] = list(session.scalars(query))
-            runs.sort(key=lambda run: run.identifier)
+            runs.sort(key=lambda run: int(run.identifier))
 
             runs_with_outstanding_action = [run for run in runs if run.outstanding_action]
             if runs_with_outstanding_action:

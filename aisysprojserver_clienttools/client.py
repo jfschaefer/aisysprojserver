@@ -24,7 +24,7 @@ ServerResponse = TypedDict(
         'action_requests': list[ActionRequest],
         'active_runs': list[str],
         'messages': list[Message],
-        'finished_runs': list[str],
+        'finished_runs': dict[str, Any],
     }
 )
 
@@ -42,6 +42,7 @@ def _handle_response(response) -> Optional[ServerResponse]:
         logger.error(f'{j["errorname"]}: {j["description"]}')
         logger.error('Stopping.')
         response.raise_for_status()
+        return None     # unreachable, but mypy doesn't know that
 
 
 def send_request(
@@ -50,7 +51,7 @@ def send_request(
         *,
         to_abandon: Optional[list[str]] = None,
         parallel_runs: bool = True
-) -> dict[str, Any]:
+) -> ServerResponse:
     while True:  # retry until success
         logger.debug(f'Sending request with {len(actions) or "no"} actions: {actions}')
         base_url = config['url']
@@ -184,7 +185,7 @@ def run(
                 if r[1].action_number == 0:
                     request_processor.on_new_run(r[1].run_id)
 
-            for run_id, outcome in response['finished_runs']:
+            for run_id, outcome in response['finished_runs'].items():
                 request_processor.on_finished_run(run_id, get_run_url(run_id), outcome)
 
             actions_to_send = request_processor.process_requests(requests, counter)

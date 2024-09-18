@@ -20,6 +20,7 @@ Checks before committing
 Before committing, please make sure that the following checks are successful:
 
 - `flake8` runs successfully
+- `mypy` runs successfully
 - `python3 -m unittest discover` runs successfully
 
 

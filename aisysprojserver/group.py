@@ -10,7 +10,7 @@ from aisysprojserver.active_env import ActiveEnvironment
 class Group(models.ModelMixin[models.GroupModel]):
     def __init__(self, identifier: str):
         models.ModelMixin.__init__(self, models.GroupModel)
-        self.identifier = identifier
+        self.identifier: str = identifier
 
     @classmethod
     def new(cls, identifier: str, title: str, description: str, overwrite: bool = False) -> Group:
@@ -28,11 +28,11 @@ class Group(models.ModelMixin[models.GroupModel]):
 
     @property
     def display_name(self) -> str:
-        return self._require_model().displayname
+        return str(self._require_model().displayname)
 
     @property
     def description(self) -> str:
-        return self._require_model().description_html
+        return str(self._require_model().description_html)
 
     def get_envs(self) -> list[ActiveEnvironment]:
         with models.Session() as session:

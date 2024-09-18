@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import sqlalchemy
 
 from aisysprojserver import models
 from aisysprojserver.env_interface import AgentDataSummary
-from aisysprojserver.util import json_load
 from aisysprojserver.run import Run
+from aisysprojserver.util import json_load
 
 
 class AgentData(models.ModelMixin[models.AgentDataModel]):
@@ -24,18 +22,18 @@ class AgentData(models.ModelMixin[models.AgentDataModel]):
     def to_agent_data_summary(self) -> AgentDataSummary:
         m = self._require_model()
 
-        recent_runs = [Run(i).to_abbreviated_run_data() for i in json_load(m.recently_finished_runs)]
+        recent_runs = [Run(i).to_abbreviated_run_data() for i in json_load(str(m.recently_finished_runs))]
 
         return AgentDataSummary(
             agent_name=self.display_name,
-            agent_rating=m.best_rating,
-            current_agent_rating=m.current_rating,
+            agent_rating=float(m.best_rating),
+            current_agent_rating=float(m.current_rating),
             recent_runs=list(reversed(recent_runs)),
-            total_number_of_runs=m.total_runs,
-            fully_evaluated=m.fully_evaluated,
+            total_number_of_runs=int(m.total_runs),
+            fully_evaluated=bool(m.fully_evaluated),
         )
 
-    def delete_nonrecent_runs(self, session: Optional = None):
+    def delete_nonrecent_runs(self, session=None):
         keep = [rr.run_id for rr in self.to_agent_data_summary().recent_runs]
         cmd = sqlalchemy.delete(models.RunModel).where(
             models.RunModel.agent == self.identifier,

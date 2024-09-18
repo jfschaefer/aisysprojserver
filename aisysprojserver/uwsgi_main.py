@@ -4,7 +4,7 @@ from aisysprojserver import telemetry
 from aisysprojserver.app import create_app
 from aisysprojserver.config import UwsgiConfig
 
-from uwsgidecorators import postfork
+from uwsgidecorators import postfork  # type: ignore
 
 config = UwsgiConfig()
 app = create_app(config)

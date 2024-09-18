@@ -18,11 +18,12 @@ def exception_handler(exception):
     if isinstance(exception, HTTPException):
         response = exception.get_response()
         if hasattr(g, 'isJSON') and g.isJSON:
-            response.data = json.dumps({
+            data = json.dumps({
                 'errorcode': exception.code,
                 'errorname': exception.name,
                 'description': exception.description,
             })
+            response.data = data   # type: ignore
             response.content_type = 'application/json'
         return response
     logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
                         filemode='w')
     logging.info(f'Starting app with config {configuration.__class__.__name__}')
 
-    if not PluginManager.initialized:
+    if not PluginManager.is_initialized():
         if not (plugins_path := Path(configuration.PLUGINS_DIR)).is_dir():
             plugins_path.mkdir()
         logging.info(f'Loading plugins from {plugins_path}')

@@ -9,7 +9,7 @@ class ActTest(ServerTestCase):
         assert protocol_version in {0, 1}
         logger = logging.getLogger(__name__)
 
-        actions = []
+        actions: list = []
         for request_number in range(number_of_requests):
             logger.debug(f'Iteration {request_number}')
             # send request
