@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.1.1 (unreleased)
+* bugfix telemetry: record pid also for `request_processing_duration`
+
 
 ## 0.1.0 (released on 2024-09-18)
 * Improvements to web interface

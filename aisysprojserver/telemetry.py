@@ -160,7 +160,7 @@ class MonitoredBlueprint(Blueprint):
                     return f(*args, **kwargs)
                 finally:
                     _instruments.request_processing_duration.record(
-                        (time.time() - start) * 1000, {'rule': rule}
+                        (time.time() - start) * 1000, {'rule': rule, 'pid': get_pid()}
                     )
 
             return Blueprint.route(self, rule, **options)(wrapped)
