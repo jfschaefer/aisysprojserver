@@ -6,6 +6,8 @@ import json
 import logging
 import multiprocessing
 import time
+from multiprocessing import Process
+from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import TypedDict, Optional, Callable, Any, Literal
 
@@ -27,6 +29,13 @@ ServerResponse = TypedDict(
         'finished_runs': dict[str, Any],
     }
 )
+
+
+def get_run_url(agent_config: AgentConfig, run_id: str) -> str:
+    url = agent_config['url']
+    if not url.endswith('/'):
+        url += '/'
+    return url + f'run/{agent_config["env"]}/{run_id}'
 
 
 def _handle_response(response) -> Optional[ServerResponse]:
@@ -111,6 +120,15 @@ class RequestProcessor(abc.ABC):
         logger.info(f'Finished run {run_id} with outcome {json.dumps(outcome)}')
         logger.info(f'You can view the run at {url}')
 
+    def on_message(self, message: Message):
+        {
+            'info': logger.info,
+            'warning': logger.warning,
+            'error': logger.error,
+        }[message['type']](
+            f'run {message["run"]}: {message["content"]}' if message['run'] is not None else message['content']
+        )
+
 
 class SimpleRequestProcessor(RequestProcessor):
     def __init__(self, action_function: Callable[[Any, RequestInfo], Any], processes: int = 1):
@@ -145,30 +163,204 @@ class SimpleRequestProcessor(RequestProcessor):
             self.pool.terminate()
 
 
-def run(
-        agent_config_file: str | Path,
-        agent_function: Callable[[Any, RequestInfo], Any],
+class Agent(abc.ABC):
+    def __init__(self, run_id: str, agent_config: AgentConfig):
+        self.__run_id = run_id
+        self.__agent_config = agent_config
+
+    @abc.abstractmethod
+    def get_action(self, percept: Any, request_info: RequestInfo) -> Any:
+        raise NotImplementedError()
+
+    def on_finish(self, outcome: Any):
+        logger.info(f'Finished run {self.__run_id} with outcome {json.dumps(outcome)}')
+        logger.info(f'You can view the run at {self.get_run_url()}')
+
+    def on_message(self, content: str, type: str):
+        {
+            'info': logger.info,
+            'warning': logger.warning,
+            'error': logger.error,
+        }[type](f'Message for run {self.__run_id}: {content}')
+
+    def get_run_url(self) -> str:
+        return get_run_url(self.__agent_config, self.__run_id)
+
+    @classmethod
+    def run(
+            cls,
+            agent_config_file: str | Path | AgentConfig,
+            *,
+            parallel_runs: bool = True,
+            multiprocessing: bool = False,
+            abandon_old_runs: bool = False,
+            run_limit: Optional[int] = None,
+    ):
+        agent_config = _get_agent_config(agent_config_file)
+        request_processor: RequestProcessor
+        if multiprocessing:
+            request_processor = MultiProcessAgentRequestProcessor(cls, agent_config)
+        else:
+            request_processor = SequentialAgentRequestProcessor(cls, agent_config)
+        _run(agent_config, request_processor, parallel_runs=parallel_runs,
+             abandon_old_runs=abandon_old_runs, run_limit=run_limit)
+
+
+class SequentialAgentRequestProcessor(RequestProcessor):
+    def __init__(self, agent_class: type[Agent], agent_config: AgentConfig):
+        self.agent_class = agent_class
+        self.agent_config = agent_config
+        self.agents: dict[str, Agent] = {}
+
+    def process_requests(self, requests: list[tuple[Any, RequestInfo]], counter: _RunTracker) -> list[Action]:
+        actions: list[Action] = []
+        for percept, request_info in requests:
+            if request_info.run_id not in self.agents:
+                self.agents[request_info.run_id] = self.agent_class(request_info.run_id, self.agent_config)
+
+            actions.append({
+                'run': request_info.run_id,
+                'act_no': request_info.action_number,
+                'action': self.agents[request_info.run_id].get_action(percept, request_info)
+            })
+
+        for run_id in list(self.agents.keys()):
+            if run_id not in counter.ongoing_runs:
+                del self.agents[run_id]
+
+        return actions
+
+    def on_finished_run(self, run_id: str, url: str, outcome: Any):
+        if run_id in self.agents:
+            self.agents[run_id].on_finish(outcome)
+        else:
+            super().on_finished_run(run_id, url, outcome)
+
+    def on_message(self, message: Message):
+        if message['run'] in self.agents:
+            self.agents[message['run']].on_message(message['content'], message['type'])
+        else:
+            super().on_message(message)
+
+
+class AgentProcess:
+    def __init__(self, agent_class: type[Agent]):
+        self.conn, conn = multiprocessing.Pipe(duplex=True)
+        self.process = Process(target=self._run, args=(conn, agent_class))
+        self.process.start()
+
+    def new_run(self, run_id: str, agent_config: AgentConfig):
+        self.send_command('new_run', run_id, agent_config)
+
+    def finish_run(self, outcome: Any):
+        self.send_command('finish_run', outcome)
+
+    def send_message(self, content: str, type: str):
+        self.send_command('message', content, type)
+
+    def send_action_request(self, percept: Any, request_info: RequestInfo):
+        self.send_command('get_action', percept, request_info)
+
+    def get_response(self):
+        return self.conn.recv()
+
+    def stop(self):
+        self.send_command('stop')
+        self.process.join()
+
+    def send_command(self, command: str, *args):
+        self.conn.send((command, *args))
+
+    def _run(self, conn: Connection, agent_class: type[Agent]):
+        agent: Optional[Agent] = None
+        while True:
+            match conn.recv():
+                case ('new_run', run_id, agent_config):
+                    agent = agent_class(run_id, agent_config)
+                case ('finish_run', outcome):
+                    agent.on_finish(outcome)
+                    agent = None
+                case ('message', content, type):
+                    agent.on_message(content, type)
+                case ('get_action', percept, request_info):
+                    conn.send(agent.get_action(percept, request_info))
+                case ('stop',):
+                    break
+
+
+class MultiProcessAgentRequestProcessor(RequestProcessor):
+    def __init__(self, agent_class: type[Agent], agent_config: AgentConfig):
+        self.agent_class = agent_class
+        self.agent_config = agent_config
+        self.assigned_processes: dict[str, AgentProcess] = {}
+        self.unassigned_processes: list[AgentProcess] = []
+
+    def process_requests(self, requests: list[tuple[Any, RequestInfo]], counter: _RunTracker) -> list[Action]:
+        # unassign processes for finished runs
+        for run_id, proc in list(self.assigned_processes.items()):
+            if run_id not in counter.ongoing_runs:
+                del self.assigned_processes[run_id]
+                self.unassigned_processes.append(proc)
+
+        actions: list[Action] = []
+        for percept, request_info in requests:
+            if request_info.run_id not in self.assigned_processes:
+                if self.unassigned_processes:
+                    process = self.unassigned_processes.pop()
+                else:
+                    process = AgentProcess(self.agent_class)
+                process.new_run(request_info.run_id, self.agent_config)
+                self.assigned_processes[request_info.run_id] = process
+
+            self.assigned_processes[request_info.run_id].send_action_request(percept, request_info)
+
+        for percept, request_info in requests:
+            actions.append({
+                'run': request_info.run_id,
+                'act_no': request_info.action_number,
+                'action': self.assigned_processes[request_info.run_id].get_response()
+            })
+
+        return actions
+
+    def on_finished_run(self, run_id: str, url: str, outcome: Any):
+        if run_id in self.assigned_processes:
+            self.assigned_processes[run_id].finish_run(outcome)
+            self.unassigned_processes.append(self.assigned_processes[run_id])
+            del self.assigned_processes[run_id]
+        else:
+            super().on_finished_run(run_id, url, outcome)
+
+    def on_message(self, message: Message):
+        if message['run'] in self.assigned_processes:
+            self.assigned_processes[message['run']].send_message(message['content'], message['type'])
+        else:
+            super().on_message(message)
+
+    def close(self):
+        for proc in self.assigned_processes.values():
+            proc.stop()
+        for proc in self.unassigned_processes:
+            proc.stop()
+
+
+def _run(
+        agent_config: AgentConfig,
+        request_processor: RequestProcessor,
         *,
         parallel_runs: bool = True,
-        processes: int = 1,
         run_limit: Optional[int] = None,
+        abandon_old_runs: bool = False,
 ):
-    agent_config = json.loads(Path(agent_config_file).read_text())
-
-    def get_run_url(run_id: str) -> str:
-        url = agent_config['url']
-        if not url.endswith('/'):
-            url += '/'
-        return url + f'run/{agent_config["env"]}/{run_id}'
-
-    request_processor = SimpleRequestProcessor(agent_function, processes=processes)
     counter = _RunTracker()
 
     actions_to_send: list[Action] = []
+    to_abandon: list[str] = []
 
     try:
         while True:
-            response = send_request(agent_config, actions_to_send, parallel_runs=parallel_runs)
+            response = send_request(agent_config, actions_to_send, parallel_runs=parallel_runs, to_abandon=to_abandon)
+            to_abandon = []
 
             counter.update(response)
 
@@ -176,20 +368,52 @@ def run(
                 logger.info(f'Stopping after {run_limit} runs.')
                 break
 
-            requests = [
-                (ar['percept'], RequestInfo(get_run_url(ar['run']), ar['act_no'], ar['run']))
-                for ar in response['action_requests']
-            ]
+            requests = []
+            for ar in response['action_requests']:
+                if abandon_old_runs and counter.old_runs and ar['run'] in counter.old_runs:
+                    to_abandon.append(ar['run'])
+                    continue
+                requests.append(
+                    (ar['percept'], RequestInfo(get_run_url(agent_config, ar['run']), ar['act_no'], ar['run']))
+                )
 
             for r in requests:
                 if r[1].action_number == 0:
                     request_processor.on_new_run(r[1].run_id)
 
             for run_id, outcome in response['finished_runs'].items():
-                request_processor.on_finished_run(run_id, get_run_url(run_id), outcome)
+                request_processor.on_finished_run(run_id, get_run_url(agent_config, run_id), outcome)
 
             actions_to_send = request_processor.process_requests(requests, counter)
 
     finally:
         request_processor.close()
         logger.info('Finished.')
+
+
+def _get_agent_config(agent_config_file: str | Path | AgentConfig) -> AgentConfig:
+    if isinstance(agent_config_file, (str, Path)):
+        agent_config = json.loads(Path(agent_config_file).read_text())
+    elif isinstance(agent_config_file, dict):
+        agent_config = agent_config_file
+    else:
+        raise ValueError('Invalid agent_config_file')
+    return agent_config
+
+
+def run(
+        agent_config_file: str | Path | AgentConfig,
+        agent: Callable[[Any, RequestInfo], Any],
+        *,
+        parallel_runs: bool = True,
+        processes: Optional[int] = None,
+        run_limit: Optional[int] = None,
+        abandon_old_runs: bool = False,
+):
+    _run(
+        _get_agent_config(agent_config_file),
+        SimpleRequestProcessor(agent, processes=processes if processes is not None else 1),
+        parallel_runs=parallel_runs,
+        run_limit=run_limit,
+        abandon_old_runs=abandon_old_runs
+    )

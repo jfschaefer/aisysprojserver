@@ -8,6 +8,7 @@ from flask.testing import FlaskClient
 from aisysprojserver import config, models
 from aisysprojserver.app import create_app
 from aisysprojserver_clienttools.admin import AdminClient
+from aisysprojserver_clienttools.client import AgentConfig
 
 
 def get_strong_nim_move(percept):
@@ -43,7 +44,7 @@ class ServerTestCase(unittest.TestCase):
     app: Flask = helper.app
     client: FlaskClient = helper.flask_client
     _standard_setup_loaded: bool = False
-    _testuser_content: dict[str, str]
+    _testuser_content: AgentConfig
 
     _username_counter: int = 0
 
