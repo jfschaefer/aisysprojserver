@@ -10,7 +10,7 @@ from aisysprojserver.env_settings import EnvSettings
 
 
 @dataclasses.dataclass(frozen=True)
-class ActionResult:
+class ActionResult:     # TODO: The encoding of the result is not intuitive. Use different classes for different results
     new_state: Optional[Any] = None         # None means that the action was not accepted (e.g. invalid move)
     message: Optional[str] = None           # A message for the agent (considered an error message if new_state is None)
     action_extra_info: Any = None           # some sort of extra information related to the action (for action history)
@@ -79,14 +79,21 @@ class GenericEnvironment(abc.ABC):
         self.env_info: EnvInfo = env_info
         self.config_json = config_json
 
+    @abc.abstractmethod
     def act(self, action: Any, run_data: RunData) -> ActionResult:
         # invalid actions should be indicated in the return value (not via exceptions)
+        # TODO: Consider also supporting exceptions...
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def new_run(self) -> Any:       # returns new state
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def get_action_request(self, run_data: RunData) -> ActionRequest:
+        raise NotImplementedError()
+
+    def get_abandon_outcome(self, run_data: RunData) -> Any:
         raise NotImplementedError()
 
     def view_run(self, run_data: RunData) -> str:

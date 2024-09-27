@@ -33,7 +33,9 @@ class EnvSettings:
     # (maximum) number of action requests sent per response
     NUMBER_OF_ACTION_REQUESTS: int = 5
 
-    STORE_ACTION_HISTORY: bool = True    # TODO: Implement this
+    CAN_ABANDON_RUNS: bool = False
+
+    STORE_ACTION_HISTORY: bool = True    # TODO: Implement not storing action history
 
     # ************************
     # * SETTINGS FOR DISPLAY *

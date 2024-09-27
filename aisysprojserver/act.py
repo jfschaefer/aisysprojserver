@@ -12,7 +12,7 @@ from aisysprojserver import models, telemetry
 from aisysprojserver.active_env import ActiveEnvironment
 from aisysprojserver.agent_account import AgentAccount
 from aisysprojserver.agent_data import AgentData
-from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionHistoryEntry
+from aisysprojserver.env_interface import GenericEnvironment, RunData, ActionHistoryEntry, ActionResult
 from aisysprojserver.models import AgentDataModel, RunModel, KeyValAccess
 from aisysprojserver.telemetry import MonitoredBlueprint
 from aisysprojserver.util import json_load, json_dump, PYDANTIC_REQUEST_CONFIG, parse_request
@@ -140,6 +140,11 @@ class ResponseV1(BaseModel):
         )
 
 
+@dataclasses.dataclass
+class AbandonAction:
+    run: str
+
+
 class ActManager:
     def __init__(self, env_id: str, request: RequestV1):
         self.env_id = env_id
@@ -158,65 +163,96 @@ class ActManager:
         self.messages: list[Message] = []
         self.finished_runs: dict[str, Any] = {}
 
-    def process_action(self, action: ActionV1):
+    def get_run_model_and_history(
+            self, action: ActionV1 | AbandonAction, session
+    ) -> Optional[tuple[RunModel, list[tuple[Any, Any]]]]:
+        run_model: Optional[RunModel] = session.get(RunModel, action.run)
+
+        if not run_model:
+            self.messages.append(Message(run=action.run, content='Invalid run id', type=MessageType.error))
+            return None
+        if run_model.agent != self.account.identifier:
+            self.messages.append(
+                Message(run=action.run, content='This run does not belong to your agent', type=MessageType.error))
+            return None
+
+        history: list[tuple[Any, Any]] = json_load(str(run_model.history))  # type: ignore
+
+        if isinstance(action, ActionV1) and action.act_no != len(history):
+            self.messages.append(Message(
+                run=action.run,
+                content=f'Wrong action number {action.act_no} '
+                        '(the action might have been for an earlier action request)',
+                type=MessageType.error
+            ))
+            return None
+
+        return run_model, history
+
+    def get_action_result(self, action: ActionV1, run_data: RunData) -> Optional[ActionResult]:
+        action_result = self.env.act(action.action, run_data)
+
+        if action_result.new_state is None:  # error
+            if action_result.message:
+                self.messages.append(Message(run=action.run, content=action_result.message, type=MessageType.error))
+            else:
+                self.messages.append(Message(
+                    run=action.run,
+                    content='Internal server error when trying to update the state',
+                    type=MessageType.error
+                ))
+            return None
+
+        if action_result.message:
+            self.messages.append(Message(run=action.run, content=action_result.message, type=MessageType.info))
+
+        return action_result
+
+    def process_action(self, action: ActionV1 | AbandonAction):
         do_cleanup: bool = False
 
         with models.Session() as session:
             # we do a separate transaction for each action - less efficient, but
             # more robust if we want to parallelize
 
-            # STEP 1: LOAD MODELS
             # Note: we do not use the Run class as a wrapper because everything should happen in the same session
             # (which is not supported by the wrapper)
-            run_model: RunModel = session.get(RunModel, action.run)
-            if not run_model:
-                self.messages.append(Message(run=action.run, content='Invalid run id', type=MessageType.error))
-            if run_model.agent != self.account.identifier:
-                self.messages.append(
-                    Message(run=action.run, content='This run does not belong to your agent', type=MessageType.error))
+
+            if (r := self.get_run_model_and_history(action, session)) is not None:
+                run_model, history = r
+            else:
                 return
 
-            history = json_load(str(run_model.history))
-            if len(history) != action.act_no:
-                self.messages.append(Message(
-                    run=action.run,
-                    content=f'Wrong action number {action.act_no} '
-                            '(the action might have been for an earlier action request)',
-                    type=MessageType.error
-                ))
-                return
-
-            # STEP 2: PERFORM ACTION
-            action_result = self.env.act(action.action, RunData(
+            run_data = RunData(
                 action_history=[ActionHistoryEntry(action, extra) for action, extra in history],
                 state=json_load(str(run_model.state)),
                 outcome=None,
                 agent_name='/'.join(run_model.agent.split('/')[1:]),
                 run_id=int(run_model.identifier),
-            ))
+            )
 
-            # STEP 3: PROCESS ACTION RESULT
-            if action_result.new_state is None:  # error
-                if action_result.message:
-                    self.messages.append(Message(run=action.run, content=action_result.message, type=MessageType.error))
-                else:
-                    self.messages.append(Message(
-                        run=action.run,
-                        content='Internal server error when trying to update the state',
-                        type=MessageType.error
-                    ))
-                return
+            if isinstance(action, AbandonAction):
+                assert self.env.settings.CAN_ABANDON_RUNS
+                outcome = self.env.get_abandon_outcome(run_data)
+                self.messages.append(Message(
+                    run=action.run, content='Run abandoned (as requested by client)', type=MessageType.warning)
+                )
 
-            if action_result.message:
-                self.messages.append(Message(run=action.run, content=action_result.message, type=MessageType.info))
+                self.finished_runs[action.run] = outcome
+                do_cleanup = self.process_outcome(outcome, run_model, session)
 
-            run_model.state = json_dump(action_result.new_state)    # type: ignore
-            history.append([action.action, action_result.action_extra_info])
-            run_model.history = json_dump(history)  # type: ignore
+            else:
+                action_result = self.get_action_result(action, run_data)
+                if action_result is None:
+                    return
 
-            if action_result.outcome is not None:
-                self.finished_runs[action.run] = action_result.outcome
-                do_cleanup = self.process_outcome(action_result.outcome, run_model, session)
+                run_model.state = json_dump(action_result.new_state)    # type: ignore
+                history.append((action.action, action_result.action_extra_info))
+                run_model.history = json_dump(history)  # type: ignore
+
+                if action_result.outcome is not None:
+                    self.finished_runs[action.run] = action_result.outcome
+                    do_cleanup = self.process_outcome(action_result.outcome, run_model, session)
 
             run_model.outstanding_action = False  # type: ignore
             session.add(run_model)
@@ -370,6 +406,12 @@ def act(env_id: str):
         env_id, protocol_version=str(protocol_version), number_of_actions=len(request_data.actions),
         client=request_data.client
     )
+
+    if request_data.to_abandon:
+        if not actor.env.settings.CAN_ABANDON_RUNS:
+            raise BadRequest('This environment does not support abandoning runs')
+        for run in request_data.to_abandon:
+            actor.process_action(AbandonAction(run))
 
     for action in request_data.actions:
         with telemetry.measure_action_processing(actor.active_env.env_class_refstr):

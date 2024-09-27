@@ -13,6 +13,7 @@ from aisysprojserver.website import AISYSPROJ_TEMPLATES, TEMPLATE_STANDARD_KWARG
 class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
     settings = EnvSettings()
     settings.MIN_RUNS_FOR_FULLY_EVALUATED = 10
+    settings.CAN_ABANDON_RUNS = True
 
     def act(self, action: Any, run_data: RunData) -> ActionResult:
         remaining = run_data.state['remaining']
@@ -54,6 +55,9 @@ class Environment(SimpleViewEnv, SimpleViewAgent, GenericEnvironment):
         else:
             number = 10
         return {'remaining': number, 'initial': number}
+
+    def get_abandon_outcome(self, run_data: RunData) -> Any:
+        return 0    # if a run is abandoned, the player loses
 
     def get_action_request(self, run_data: RunData) -> ActionRequest:
         return ActionRequest(content=run_data.state['remaining'])
