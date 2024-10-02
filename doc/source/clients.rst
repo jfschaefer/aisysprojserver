@@ -14,6 +14,7 @@ you can use the provided implementations as a reference.
 Client implementations
 ----------------------
 
+* `"Standard" Python client <https://github.com/jfschaefer/aisysprojserver/blob/main/aisysprojserver_clienttools/client.py>`_
 * `Simple Python client (for protocol version 0) <https://github.com/jfschaefer/aisysprojserver/blob/main/aisysprojserver_clienttools/client_simple_v0.py>`_
 * `Simple Python client (for protocol version 1) <https://github.com/jfschaefer/aisysprojserver/blob/main/aisysprojserver_clienttools/client_simple_v1.py>`_
 
