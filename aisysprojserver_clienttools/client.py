@@ -1,4 +1,10 @@
-"""A more sophisticated AISysProj server client implementation than in ``client_simple_v1.py``."""
+"""
+A Python implementation of the AISysProj server protocol.
+
+If you want to do the protocol implementation yourself,
+there is also a simplified client implementation, which should
+be much easier to understand.
+"""
 
 import abc
 import dataclasses
@@ -406,13 +412,13 @@ def run(
         agent: Callable[[Any, RequestInfo], Any],
         *,
         parallel_runs: bool = True,
-        processes: Optional[int] = None,
+        processes: int = 1,
         run_limit: Optional[int] = None,
         abandon_old_runs: bool = False,
 ):
     _run(
         _get_agent_config(agent_config_file),
-        SimpleRequestProcessor(agent, processes=processes if processes is not None else 1),
+        SimpleRequestProcessor(agent, processes=processes),
         parallel_runs=parallel_runs,
         run_limit=run_limit,
         abandon_old_runs=abandon_old_runs
