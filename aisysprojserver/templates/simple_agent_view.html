@@ -36,7 +36,7 @@
     {% endif %}
     <ul>
     {% for run in agent_data.recent_runs %}
-        <li><a href="{{ url_for('website.run_page', env=env.env_info.identifier, runid=run.run_id)}}">Run {{ run.run_id }} (Outcome: {{ run.outcome }})</a></li>
+        <li><a href="{{ url_for('website.run_page', env=env.env_info.identifier, runid=run.run_id)}}" rel="nofollow">Run {{ run.run_id }} (Outcome: {{ run.outcome }})</a></li>
     {% endfor %}
     </ul>
 
