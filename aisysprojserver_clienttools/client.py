@@ -368,6 +368,9 @@ def _run(
             response = send_request(agent_config, actions_to_send, parallel_runs=parallel_runs, to_abandon=to_abandon)
             to_abandon = []
 
+            for message in response['messages']:
+                request_processor.on_message(message)
+
             counter.update(response)
 
             if run_limit is not None and counter.number_of_new_runs_finished >= run_limit:
