@@ -4,6 +4,9 @@ A Python implementation of the AISysProj server protocol.
 If you want to do the protocol implementation yourself,
 there is also a simplified client implementation, which should
 be much easier to understand.
+
+You can find client implementations here:
+https://aisysprojserver.readthedocs.io/en/latest/clients.html
 """
 
 import abc
