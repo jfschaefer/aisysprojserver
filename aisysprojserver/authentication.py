@@ -8,6 +8,7 @@ Design decisions:
   That way we don't have to use slow hashing algorithms like bcrypt.
 """
 import base64
+import functools
 import hashlib
 import secrets
 
@@ -33,6 +34,17 @@ def require_password_match(password: str, stored_hash: str):
         raise Unauthorized(description='unknown hashing algorithm used for stored password')
 
 
+@functools.cache
+def get_admin_hashes() -> list[str]:
+    if (admin_auth := config.get().ADMIN_AUTH) is not None:
+        return [admin_auth]
+    path = config.get().PERSISTENT / 'admin_hashes.txt'
+    if not path.exists():
+        return []
+    with path.open('r') as f:
+        return [line.strip() for line in f if line.strip()]
+
+
 def require_admin_auth():
     if 'Authorization' in request.headers:
         val = request.headers['Authorization'].split()
@@ -48,7 +60,19 @@ def require_admin_auth():
         raise Unauthorized(description='admin authorization is required')
     if not isinstance(password, str):
         raise BadRequest('Bad value for "admin-pwd"')
-    require_password_match(password, config.get().ADMIN_AUTH)
+
+    admin_hashes = get_admin_hashes()
+    if not admin_hashes:
+        raise Unauthorized(description='admin access is not configured')
+    exception = None
+    for hash_ in admin_hashes:
+        try:
+            require_password_match(password, hash_)
+            return
+        except Unauthorized as e:
+            exception = e
+    assert exception is not None
+    raise exception
 
 
 def generate_admin_password():

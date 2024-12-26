@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.2 (unreleased)
+* admin password hashes do not have to be hard-coded anymore
+
 ## 0.1.1 (released on 2024-10-02)
 * bugfix telemetry: record pid also for `request_processing_duration`
 * support abandoning runs on the server (already part of server protocol since 0.1.0)

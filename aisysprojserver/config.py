@@ -45,7 +45,7 @@ class Config:
 
     # admin access
     # Run ``authentication.py`` to generate a password and a hash
-    ADMIN_AUTH = ''  # the hash
+    ADMIN_AUTH = None  # the hash of the password (None means admin access is based on a file)
 
     def register(self, app: Flask):
         registered_configs[app] = self
@@ -57,7 +57,7 @@ class TestConfig(Config):
 
 
 class UwsgiConfig(Config):
-    ADMIN_AUTH = 'sha256:017617f402eea6ef59d2a3aad435005bf0196f1d832b4e78feb43368060f9505'
+    ADMIN_AUTH = None
     CONFIG_NAME = 'uwsgi'
     PERSISTENT: Path = Path('/app/persistent')
     # PLUGINS_DIR: Path = Path('/app/persistent/plugins')
