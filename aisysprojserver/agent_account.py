@@ -4,6 +4,7 @@ import secrets
 from enum import IntEnum
 from typing import Optional
 
+import sqlalchemy
 from flask import request
 from werkzeug.exceptions import Unauthorized, BadRequest
 
@@ -111,3 +112,18 @@ class AgentAccount(models.ModelMixin[models.AgentAccountModel]):
         def unblock(ac: models.AgentAccountModel):
             ac.status = AgentStatus.ACTIVE  # type: ignore
         self._change_model(unblock)
+
+    def delete(self):
+        print(f'Deleting agent {self.identifier}')
+        cmd = sqlalchemy.delete(models.AgentAccountModel).where(models.AgentAccountModel.identifier == self.identifier)
+        with models.Session() as session:
+            session.execute(cmd)
+            session.commit()
+
+
+def get_all_agentaccounts_for_env(env_id: str) -> list[AgentAccount]:
+    with models.Session() as session:
+        identifiers = session.execute(
+            sqlalchemy.select(models.AgentAccountModel.identifier).where(models.AgentAccountModel.environment == env_id)
+        )
+        return [AgentAccount(env_id, identifier[0][len(env_id) + 1:]) for identifier in identifiers]

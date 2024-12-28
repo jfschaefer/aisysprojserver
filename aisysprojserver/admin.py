@@ -6,8 +6,10 @@ from werkzeug.exceptions import NotFound
 
 from aisysprojserver import config, models
 from aisysprojserver.active_env import ActiveEnvironment, get_all_active_envs
-from aisysprojserver.agent_data import get_all_agentdata
+from aisysprojserver.agent_account import get_all_agentaccounts_for_env
+from aisysprojserver.agent_data import get_all_agentdata, AgentData
 from aisysprojserver.authentication import require_admin_auth
+from aisysprojserver.group import get_all_groups
 from aisysprojserver.telemetry import MonitoredBlueprint
 from aisysprojserver.website import cache
 
@@ -70,4 +72,35 @@ def removenonrecentruns():
             agent_data.delete_nonrecent_runs()
     with models.Session() as session:
         session.execute(text('VACUUM'))
+    return jsonify({'result': 'done'})
+
+
+@bp.route('/getenvs')
+@cache.cached(timeout=10)
+def getenvs():
+    g.isJSON = True
+    require_admin_auth()
+    result: dict[str, list[str]] = {}
+    for ae in get_all_active_envs():
+        result[ae.identifier] = []
+    for group in get_all_groups():
+        for env in group.get_envs():
+            result[env.identifier].append(group.display_name)
+    return jsonify(result)
+
+
+@bp.route('/deleteunusedagents/<env_id>')
+def deleteunusedagents(env_id: str):
+    g.isJSON = True
+    require_admin_auth()
+    accounts = get_all_agentaccounts_for_env(env_id)
+    for account in accounts:
+        agent_data = AgentData(account.identifier)
+        if not agent_data.exists():
+            account.delete()
+            continue
+        if agent_data.to_agent_data_summary().total_number_of_runs == 0:
+            account.delete()
+            agent_data.delete()
+
     return jsonify({'result': 'done'})

@@ -33,6 +33,15 @@ class AgentData(models.ModelMixin[models.AgentDataModel]):
             fully_evaluated=bool(m.fully_evaluated),
         )
 
+    def delete(self, session=None):
+        cmd = sqlalchemy.delete(models.AgentDataModel).where(models.AgentDataModel.identifier == self.identifier)
+        if session:
+            session.execute(cmd)
+        else:
+            with models.Session() as session:
+                session.execute(cmd)
+                session.commit()
+
     def delete_nonrecent_runs(self, session=None):
         keep = [rr.run_id for rr in self.to_agent_data_summary().recent_runs]
         cmd = sqlalchemy.delete(models.RunModel).where(

@@ -42,7 +42,7 @@ class Group(models.ModelMixin[models.GroupModel]):
                     models.GroupEntryModel.entry_type == 1
                 )
             )
-            return [ActiveEnvironment(identifier) for identifier in identifiers]
+            return [ActiveEnvironment(identifier[0]) for identifier in identifiers]
 
     def delete(self):
         with models.Session() as session:
@@ -79,3 +79,9 @@ class Group(models.ModelMixin[models.GroupModel]):
         with models.Session() as session:
             session.merge(models.GroupEntryModel(group=self.identifier, entry_type=0, entry=subgroup.identifier))
             session.commit()
+
+
+def get_all_groups() -> list[Group]:
+    with models.Session() as session:
+        identifiers = session.execute(sqlalchemy.select(models.GroupModel.identifier))
+        return [Group(identifier[0]) for identifier in identifiers]

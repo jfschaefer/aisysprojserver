@@ -2,6 +2,8 @@
 
 ## 0.1.2 (unreleased)
 * admin password hashes do not have to be hard-coded anymore
+* feature: admins can now get all environment and group identifiers
+* feature: admins can delete unused accounts
 
 ## 0.1.1 (released on 2024-10-02)
 * bugfix telemetry: record pid also for `request_processing_duration`

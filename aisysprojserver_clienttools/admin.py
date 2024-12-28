@@ -101,6 +101,18 @@ class AdminClient:
         assert code == 200
         return content
 
+    def remove_unused_agents(self, env: str):
+        code, content = self.send_request(
+            f'deleteunusedagents/{env}', method='GET', json={'admin-pwd': self.pwd}
+        )
+        assert code == 200
+        return content
+
+    def get_envs(self):
+        code, content = self.send_request('getenvs', method='GET', json={'admin-pwd': self.pwd})
+        assert code == 200
+        return content
+
     def upload_plugin(self, package: Path | str):
         package = Path(package)
         assert package.is_dir()

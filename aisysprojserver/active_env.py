@@ -46,9 +46,9 @@ class ActiveEnvironment(models.ModelMixin[models.ActiveEnvironmentModel]):
     def display_name(self) -> str:
         return str(self._require_model().displayname)
 
-    @property
-    def display_group(self) -> str:
-        return str(self._require_model().displaygroup)
+    # @property
+    # def display_group(self) -> str:
+    #     return str(self._require_model().displaygroup)
 
     @property
     def env_class_refstr(self) -> str:
