@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2 (unreleased)
+## 0.1.2 (released on 2024-12-28)
 * admin password hashes do not have to be hard-coded anymore
 * feature: admins can now get all environment and group identifiers
 * feature: admins can delete unused accounts
