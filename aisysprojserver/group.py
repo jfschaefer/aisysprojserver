@@ -42,7 +42,7 @@ class Group(models.ModelMixin[models.GroupModel]):
                     models.GroupEntryModel.entry_type == 1
                 )
             )
-            return [ActiveEnvironment(identifier[0]) for identifier in identifiers]
+            return [ActiveEnvironment(identifier) for identifier in identifiers]
 
     def delete(self):
         with models.Session() as session:
