@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3 (released on 2024-12-28)
+ * bugfix: error when loading env's by group
+
 ## 0.1.2 (released on 2024-12-28)
 * admin password hashes do not have to be hard-coded anymore
 * feature: admins can now get all environment and group identifiers
