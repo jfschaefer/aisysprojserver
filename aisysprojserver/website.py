@@ -51,13 +51,12 @@ def group_page(group: str | Group):
     return _jinja_env.get_template('group_page.html').render(
         title=group.display_name,
         description=group.description,
-        # TODO: why do we need *.identifier[0] instead of just *.identifier?
         envs=[
-            (url_for('website.env_page', env=env.identifier[0]), env.display_name)
+            (url_for('website.env_page', env=env.identifier), env.display_name)
             for env in envs_list
         ],
         subgroups=[
-            (url_for('website.group_page', group=g.identifier[0]), g.display_name)
+            (url_for('website.group_page', group=g.identifier), g.display_name)
             for g in subgroup_list
         ],
         **TEMPLATE_STANDARD_KWARGS
