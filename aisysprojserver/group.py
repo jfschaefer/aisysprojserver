@@ -68,7 +68,7 @@ class Group(models.ModelMixin[models.GroupModel]):
                     models.GroupEntryModel.entry_type == 0
                 )
             )
-            return [Group(identifier) for identifier in identifiers]
+            return [Group(identifier[0]) for identifier in identifiers]
 
     def add_env(self, env: ActiveEnvironment):
         with models.Session() as session:

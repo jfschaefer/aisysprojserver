@@ -2,6 +2,7 @@
 
 ## 0.1.4 (unreleased)
 * bugfix: proper fix for error when loading env's by group
+* bugfix: extract identifier when loading subgroups
 
 ## 0.1.3 (released on 2024-12-28)
 * bugfix: error when loading env's by group
