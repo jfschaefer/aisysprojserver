@@ -368,6 +368,8 @@ def _run(
 
     try:
         while True:
+            if to_abandon:
+                logger.info(f'Abandoning {len(to_abandon)} old runs: {", ".join(to_abandon)}')
             response = send_request(agent_config, actions_to_send, parallel_runs=parallel_runs, to_abandon=to_abandon)
             to_abandon = []
 
