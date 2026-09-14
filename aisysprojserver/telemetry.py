@@ -169,8 +169,6 @@ class MonitoredBlueprint(Blueprint):
 
 
 def setup(config: Config):
-    global _instruments
-
     if config.PROMETHEUS_PORT is not None:
         start_http_server(port=config.PROMETHEUS_PORT, addr='localhost')
 

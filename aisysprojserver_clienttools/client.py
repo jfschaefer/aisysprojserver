@@ -110,9 +110,7 @@ class _RunTracker:
                     self.old_runs.remove(rq['run'])
 
         ongoing_runs = set(response['active_runs'])
-        self.number_of_new_runs_finished += len(
-                self.ongoing_runs - self.old_runs - ongoing_runs
-        )
+        self.number_of_new_runs_finished += len(self.ongoing_runs - self.old_runs - ongoing_runs)
         self.ongoing_runs = ongoing_runs
 
 
