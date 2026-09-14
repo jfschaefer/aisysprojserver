@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import logging
+import zipfile
 from pathlib import Path
 from typing import Any, Optional
 from zipfile import ZipFile
@@ -25,6 +26,14 @@ class AdminClient:
             with open(Path('~/.aisysprojserver_auth').expanduser(), 'r') as fp:
                 password = fp.read().strip()
         self.pwd: str = password
+
+    def get_encoded_pwd(self) -> str:
+        return (
+            base64.
+            encodebytes(self.pwd.encode())
+            .decode()
+            .replace('\n', '')  # no linebreaks in header
+        )
 
     @classmethod
     def from_file(cls, path: Path) -> AdminClient:
@@ -128,11 +137,34 @@ class AdminClient:
                 logger.debug(f'Including {rel_path}')
                 zf.write(file_path, arcname=rel_path)
 
-        encoded_pwd = (
-            base64.
-            encodebytes(self.pwd.encode())
-            .decode()
-            .replace('\n', '')  # no linebreaks in header
-        )
         return self.send_request('/uploadplugin', method='PUT', data=data.getvalue(),
-                                 headers={'Authorization': f'Basic {encoded_pwd}'})
+                                 headers={'Authorization': f'Basic {self.get_encoded_pwd()}'})
+
+    def setup_verify(
+            self,
+            identifier: str,
+            data: Path | dict | None = None,
+            verifier: str | None = None,
+    ):
+        if isinstance(data, Path):
+            data_bytes = data.read_bytes()
+        else:
+            if data is None:
+                if verifier is None:
+                    raise ValueError('Need to specify verifier if no data is provided')
+                data = {
+                    'identifier': identifier,
+                    'verifier': verifier,
+                }
+            assert isinstance(data, dict)
+            bytes_io = io.BytesIO()
+            with zipfile.ZipFile(bytes_io, 'w') as zf:
+                zf.writestr('meta.json', data=json.dumps(data))
+            data_bytes = bytes_io.getvalue()
+
+        return self.send_request(
+            f'/verify/{identifier}',
+            method='PUT',
+            data=data_bytes,
+            headers={'Authorization': f'Basic {self.get_encoded_pwd()}'}
+        )

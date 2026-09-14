@@ -121,6 +121,11 @@ class KeyValAccess:
         else:
             self.session.add(KeyValModel(key=key, val=value))
 
+    def __delitem__(self, key):
+        entry = self.session.get(KeyValModel, key)
+        if entry is not None:
+            self.session.delete(entry)
+
 
 _M = TypeVar('_M', bound=Base)
 

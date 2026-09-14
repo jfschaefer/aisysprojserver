@@ -24,6 +24,10 @@ class Config:
     def PLUGINS_DIR(self) -> Path:
         return self.PERSISTENT / 'plugins'
 
+    @property
+    def VERIFY_DIR(self) -> Path:
+        return self.PERSISTENT / 'verify'
+
     # Logging etc.
     MIN_LOG_LEVEL = logging.INFO
 

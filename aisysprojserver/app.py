@@ -8,10 +8,11 @@ from flask import Flask, g, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError, Unauthorized
 
 from aisysprojserver import models, agent_account_management, plugins, authentication, active_env_management, act, \
-    website, admin, group_management, telemetry
+    website, admin, group_management, telemetry, verify
 from aisysprojserver.config import Config, TestConfig, UwsgiConfig
 from aisysprojserver.group import Group
 from aisysprojserver.plugins import PluginManager
+from aisysprojserver.verify import VerifyConfig
 
 
 def exception_handler(exception):
@@ -70,6 +71,8 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
         PluginManager.set_plugins_dir(plugins_path)
         PluginManager.reload_all_plugins()
 
+    VerifyConfig.verify_path = Path(configuration.VERIFY_DIR)
+
     models.setup(configuration)
     if not isinstance(configuration, UwsgiConfig):
         logging.info('Setting up telemetry')
@@ -101,6 +104,7 @@ def create_app(configuration: Optional[Config] = None) -> Flask:
     app.register_blueprint(website.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(group_management.bp)
+    app.register_blueprint(verify.bp)
     website.cache.init_app(app)
 
     return app
