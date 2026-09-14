@@ -6,12 +6,17 @@ from itertools import product
 from pathlib import Path
 from typing import Callable, Any
 
-from aisysprojserver_clienttools.client import AgentConfig, RequestInfo
+from aisysprojserver_clienttools.client import AgentConfig, RequestInfo, Agent
 from aisysprojserver_test.servertestcase import get_strong_nim_move, ServerTestCase
 
 
 class SuccessException(Exception):
     pass
+
+
+class MyAgent(Agent):
+    def get_action(self, percept: Any, request_info: RequestInfo) -> Any:
+        return get_strong_nim_move(percept)
 
 
 class ActTest(ServerTestCase):
@@ -92,11 +97,6 @@ class ActTest(ServerTestCase):
 
     def test_advanced_client(self):
         self.require_standard_setup()
-        from aisysprojserver_clienttools.client import Agent
-
-        class MyAgent(Agent):
-            def get_action(self, percept: Any, request_info: RequestInfo) -> Any:
-                return get_strong_nim_move(percept)
 
         for abandon_old_runs, multiprocessing in itertools.product([True, False], [True, False]):
             with self.subTest(abandon_old_runs=abandon_old_runs, multiprocessing=multiprocessing):
