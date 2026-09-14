@@ -9,7 +9,7 @@ from flask import Blueprint
 from opentelemetry import metrics
 from opentelemetry.metrics import Meter, Histogram, Counter, Observation, CallbackOptions
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics._internal.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.metrics._internal.export import PeriodicExportingMetricReader, MetricReader
 from opentelemetry.sdk.metrics.view import ExplicitBucketHistogramAggregation, View
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_VERSION
 from prometheus_client import start_http_server
@@ -177,7 +177,7 @@ def setup(config: Config):
         SERVICE_VERSION: __version__
     })
 
-    readers = []
+    readers: list[MetricReader] = []
 
     if config.PROMETHEUS_PORT is not None:
         from opentelemetry.exporter.prometheus import PrometheusMetricReader  # type: ignore

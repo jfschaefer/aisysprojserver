@@ -287,11 +287,17 @@ class AgentProcess:
                 case ('new_run', run_id, agent_config):
                     agent = agent_class(run_id, agent_config)
                 case ('finish_run', outcome):
+                    if agent is None:
+                        raise RuntimeError('Invalid state (agent is None)')
                     agent.on_finish(outcome)
                     agent = None
                 case ('message', content, type):
+                    if agent is None:
+                        raise RuntimeError('Invalid state (agent is None)')
                     agent.on_message(content, type)
                 case ('get_action', percept, request_info):
+                    if agent is None:
+                        raise RuntimeError('Invalid state (agent is None)')
                     conn.send(agent.get_action(percept, request_info))
                 case ('stop',):
                     break

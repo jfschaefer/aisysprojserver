@@ -49,7 +49,7 @@ class Config:
 
     # admin access
     # Run ``authentication.py`` to generate a password and a hash
-    ADMIN_AUTH = None  # the hash of the password (None means admin access is based on a file)
+    ADMIN_AUTH: str | None = None  # the hash of the password (None means admin access is based on a file)
 
     def register(self, app: Flask):
         registered_configs[app] = self
