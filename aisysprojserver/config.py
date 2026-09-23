@@ -70,3 +70,14 @@ class UwsgiConfig(Config):
 
     OTLP_ENDPOINT = 'http://localhost:4318/v1/metrics'
     PROMETHEUS_PORT = None   # multiple processes -> port conflict
+
+class GunicornConfig(Config):
+    ADMIN_AUTH = None
+    CONFIG_NAME = 'gunicorn'
+    PERSISTENT: Path = Path('/app/persistent')
+    # PLUGINS_DIR: Path = Path('/app/persistent/plugins')
+    # DATABASE_URI = 'sqlite:////app/persistent/aisysprojserver.db'
+    # LOG_FILE = '/app/persistent/aisysprojserver.log'
+
+    OTLP_ENDPOINT = 'http://localhost:4318/v1/metrics'
+    PROMETHEUS_PORT = None   # multiple processes -> port conflict

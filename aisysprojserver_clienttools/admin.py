@@ -143,10 +143,12 @@ class AdminClient:
     def setup_verify(
             self,
             identifier: str,
-            data: Path | dict | None = None,
+            data: Path | bytes | dict | None = None,
             verifier: str | None = None,
     ):
-        if isinstance(data, Path):
+        if isinstance(data, bytes):
+            data_bytes = data
+        elif isinstance(data, Path):
             data_bytes = data.read_bytes()
         else:
             if data is None:
