@@ -9,7 +9,7 @@ RUN pip install gunicorn
 VOLUME /app/persistent
 COPY ./aisysprojserver /app/aisysprojserver
 
-CMD ["gunicorn", "--bind", "-w", "4", "0.0.0.0:8000", "aisysprojserver.gunicorn_main:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "aisysprojserver.gunicorn_main:app"]
 
 
 
