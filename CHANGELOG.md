@@ -1,6 +1,7 @@
 # Changelog
 
-## 0.1.4 (unreleased)
+## 0.1.4 (released on 2026-09-23)
+* switch to gunicorn (uwsgi is in maintenance mode)
 * bugfix: proper fix for error when loading env's by group
 * bugfix: extract identifier when loading subgroups
 * bugfix: `run_limit` in client also counted old (and possibly abandoned) runs
